@@ -30,12 +30,12 @@ interface ProductGridProps {}
 
 const ProductGrid: React.FC<ProductGridProps> = () => {
   const products = [
-    { image: "/assets/next.svg", title: "Trek Marlin 7 2023", condition: "Excellent", price: "12.500.000 đ" },
-    { image: "/assets/next.svg", title: "Giant TCR Advanced 2022", condition: "Good", price: "15.200.000 đ" },
-    { image: "/assets/next.svg", title: "Specialized Roubaix 2021", condition: "Very Good", price: "18.900.000 đ" },
-    { image: "/assets/next.svg", title: "Cannondale Synapse 2023", condition: "Excellent", price: "14.800.000 đ" },
-    { image: "/assets/next.svg", title: "Bianchi Oltre XR4 2022", condition: "Good", price: "22.500.000 đ" },
-    { image: "/assets/next.svg", title: "Pinarello Dogma F12 2021", condition: "Very Good", price: "28.000.000 đ" },
+    { image: "/assets/bike.png", title: "Trek Marlin 7 2023", condition: "Excellent", price: "12.500.000 đ" },
+    { image: "/assets/bike.png", title: "Giant TCR Advanced 2022", condition: "Good", price: "15.200.000 đ" },
+    { image: "/assets/bike.png", title: "Specialized Roubaix 2021", condition: "Very Good", price: "18.900.000 đ" },
+    { image: "/assets/bike.png", title: "Cannondale Synapse 2023", condition: "Excellent", price: "14.800.000 đ" },
+    { image: "/assets/bike.png", title: "Bianchi Oltre XR4 2022", condition: "Good", price: "22.500.000 đ" },
+    { image: "/assets/bike.png", title: "Pinarello Dogma F12 2021", condition: "Very Good", price: "28.000.000 đ" },
   ];
 
   return (

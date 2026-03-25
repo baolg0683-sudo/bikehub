@@ -6,6 +6,9 @@ import Footer from "../components/Layout/Footer";
 export const metadata: Metadata = {
   title: "BikeMarket - Chợ Xe Đạp Cũ",
   description: "Nền tảng định giá và mua bán xe đạp thể thao cũ",
+  icons: {
+    icon: '/assets/favicon.ico',
+  },
 };
 
 export default function RootLayout({

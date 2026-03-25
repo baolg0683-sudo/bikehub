@@ -1,4 +1,5 @@
 import React from "react";
+import { FiMail, FiPhone, FiMapPin } from "react-icons/fi";
 
 interface FooterProps {}
 
@@ -9,7 +10,9 @@ const Footer: React.FC<FooterProps> = () => {
         <div className="footer-grid">
           <div className="footer-section">
             <h3 className="footer-title">
-              <span className="footer-icon">🚲</span> BikeMarket
+              <span className="footer-icon">
+                <img src="/assets/favicon.ico" width={24} height={24} />
+              </span> BikeMarket
             </h3>
             <p className="footer-text">
               Nền tảng mua bán xe đạp uy tín, chất lượng hàng đầu Việt Nam.
@@ -36,9 +39,9 @@ const Footer: React.FC<FooterProps> = () => {
           <div className="footer-section">
             <h4 className="footer-subtitle">Liên hệ</h4>
             <div className="footer-contact">
-              <p>📧 info@bikemarket.vn</p>
-              <p>📞 1800-xxxx</p>
-              <p>📍 TP.HCM, Việt Nam</p>
+              <p><FiMail /> bikemarket@bikemarket.vn</p>
+              <p><FiPhone /> 1800-0081</p>
+              <p><FiMapPin /> Tô Ký, Q.12 TP.HCM, Việt Nam</p>
             </div>
           </div>
         </div>

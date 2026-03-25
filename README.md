@@ -8,4 +8,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 First, run the development server:
 
 ```bash
-npm run dev
+cd FE trước đã nha 
+1. npm install
+2. npm install react-icons --save
+3. npm run dev

@@ -1,38 +1,37 @@
 import React from "react";
+import Link from "next/link";
 
-interface HeaderProps {}
-
-const Header: React.FC<HeaderProps> = () => {
+const Header: React.FC = () => {
   return (
     <header className="header">
       <div className="header-container">
-        {/* Cửa hàng Logo */}
+        {/* Logo */}
         <div className="header-logo">
-          <div className="logo-icon">
+          <Link href="/" className="logo-icon">
             <img src="/assets/favicon.ico" width={24} height={24} alt="logo" />
             <span>BikeMarket</span>
-          </div>
-        </div> {/* Thêm thẻ đóng cho header-logo */}
+          </Link>
+        </div>
 
         {/* Menu điều hướng */}
         <nav className="header-nav">
-          <a href="#" className="nav-link">
+          <Link href="/" className="nav-link">
             Trang chủ
             <span className="nav-underline"></span>
-          </a>
-          <a href="#" className="nav-link">
+          </Link>
+          <a href="#products" className="nav-link">
             Sản phẩm
             <span className="nav-underline"></span>
           </a>
-          <a href="#" className="nav-link">
+          <a href="#services" className="nav-link">
             Dịch vụ
             <span className="nav-underline"></span>
           </a>
-          <a href="#" className="nav-link">
+          <a href="#promotions" className="nav-link">
             Khuyến mãi
             <span className="nav-underline"></span>
           </a>
-          <a href="#" className="nav-link">
+          <a href="#contact" className="nav-link">
             Liên hệ
             <span className="nav-underline"></span>
           </a>
@@ -40,10 +39,14 @@ const Header: React.FC<HeaderProps> = () => {
 
         {/* Nút hành động */}
         <div className="header-actions">
-          <button className="btn-login">Đăng nhập</button>
-          <button className="btn-post">Đăng tin</button>
+          <Link href="/login" className="btn-login">
+            Đăng nhập
+          </Link>
+          <Link href="/register" className="btn-post">
+            Đăng ký
+          </Link>
         </div>
-      </div> {/* Thẻ đóng cho header-container */}
+      </div>
     </header>
   );
 };

@@ -539,3 +539,164 @@ main {
   transform: translateY(-2px);
 }
 
+
+/* ===== AUTH PAGES (Login / Register) ===== */
+.auth-page {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.auth-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.auth-brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #c11e27;
+}
+
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 1.75rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-input {
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: #111827;
+  background: #f9fafb;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: #c11e27;
+  box-shadow: 0 0 0 3px rgba(193, 30, 39, 0.12);
+  background: #fff;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.form-link {
+  color: #c11e27;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.form-link:hover {
+  color: #991b1b;
+  text-decoration: underline;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #d4443f, #c11e27);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 0.25rem;
+}
+
+.auth-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.auth-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Fix btn-login / btn-post as links */
+.btn-login,
+.btn-post {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}

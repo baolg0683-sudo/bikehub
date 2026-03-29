@@ -1,4 +1,27 @@
+ HEAD
 ﻿import os
+import logging
+from datetime import timedelta
+from flask import Flask, g, jsonify
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from dotenv import load_dotenv
+
+ HEAD
+from flask import Flask, jsonify
+# from api.routes import register_routes
+from api.swagger import spec
+from api.controllers.todo_controller import bp as todo_bp
+from api.controllers.auth_controller import auth_bp as auth_bp
+from api.middleware import middleware
+from api.responses import success_response
+from infrastructure.databases import init_db
+from config import Config
+ 24330b9 (Restore .gitignore and fix app/listing_service changes)
+from flasgger import Swagger
+from flask_swagger_ui import get_swaggerui_blueprint
+
+import os
 import logging
 from datetime import timedelta
 from flask import Flask, g, jsonify
@@ -20,6 +43,10 @@ from api.controllers.listing_controller import bp as listing_bp
 from api.controllers.inspection_controller import bp as inspection_bp
 from api.controllers.order_controller import bp as order_bp
 from api.controllers.interaction_controller import interactions_bp
+ HEAD
+======
+1dd455 (Restore .gitignore and fix app/listing_service changes)
+ 24330b9 (Restore .gitignore and fix app/listing_service changes)
 
 # --- IMPORT REPOSITORIES & SERVICES ---
 from infrastructure.repositories.interaction_repository import MessageRepository, ReviewRepository
@@ -68,15 +95,30 @@ def create_app(config_name='development'):
     
     # Swagger (Flasgger)
     Swagger(app)
+ HEAD
 
     # ===== 3. ĐĂNG KÝ BLUEPRINTS =====
     app.register_blueprint(auth_bp)
+
+ HEAD
+    # Đăng ký blueprint trước
+    app.register_blueprint(todo_bp)
+    app.register_blueprint(auth_bp)
+    # register_routes(app)
+     # Thêm Swagger UI blueprint
+
+
+    # ===== 3. ĐĂNG KÝ BLUEPRINTS =====
+    app.register_blueprint(auth_bp)
+ 24330b9 (Restore .gitignore and fix app/listing_service changes)
     app.register_blueprint(listing_bp, url_prefix='/api/listings')
     app.register_blueprint(inspection_bp, url_prefix='/api/inspections')
     app.register_blueprint(order_bp, url_prefix='/api/orders')
     app.register_blueprint(interactions_bp, url_prefix='/api/interactions')
 
     # Swagger UI Blueprint (Cấu cục giao diện /docs)
+ 14dd455 (Restore .gitignore and fix app/listing_service changes)
+ 24330b9 (Restore .gitignore and fix app/listing_service changes)
     SWAGGER_URL = '/docs'
     API_URL = '/swagger.json'
     swaggerui_blueprint = get_swaggerui_blueprint(
@@ -125,8 +167,18 @@ def create_app(config_name='development'):
     from api.swagger import spec # Đảm bảo file này tồn tại trong dự án của bạn
     with app.test_request_context():
         for rule in app.url_map.iter_rules():
+ HEAD
             # Lọc các endpoint cần show trên Swagger
             if rule.endpoint.startswith(('auth.', 'interactions.', 'listing.', 'order.', 'inspection.')):
+
+ HEAD
+            # Thêm các endpoint khác nếu cần
+            if rule.endpoint.startswith(('todo.', 'course.', 'user.', 'auth.')):
+
+            # Lọc các endpoint cần show trên Swagger
+            if rule.endpoint.startswith(('auth.', 'interactions.', 'listing.', 'order.', 'inspection.')):
+ 14dd455 (Restore .gitignore and fix app/listing_service changes)
+ 24330b9 (Restore .gitignore and fix app/listing_service changes)
                 view_func = app.view_functions[rule.endpoint]
                 try:
                     spec.path(view=view_func)

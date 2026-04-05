@@ -5,7 +5,7 @@ from config_jwt import JWTConfig
 from api.middleware import setup_middleware
 from api.middleware.auth import register_jwt_error_handlers
 from api.routes import register_routes
-from infrastructure.databases import init_db
+from infrastructure.databases import init_db, db
 from app_logging import setup_logging
 
 def create_app():
@@ -15,11 +15,18 @@ def create_app():
     app.config.setdefault('SQLALCHEMY_DATABASE_URI', app.config.get('DATABASE_URI'))
 
     setup_logging()
-    init_db(app)
     
     # Initialize JWT
     jwt = JWTManager(app)
     register_jwt_error_handlers(app)
+    
+    # Initialize database
+    init_db(app)
+    
+    # Import models to register them with db
+    with app.app_context():
+        from infrastructure.models.auth.user_model import UserModel
+        db.create_all()
     
     setup_middleware(app)
     register_routes(app)

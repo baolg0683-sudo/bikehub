@@ -31,7 +31,7 @@ def require_auth(f):
             claims = get_jwt()
             
             g.user = {
-                "user_id": user_id,
+                "user_id": int(user_id) if isinstance(user_id, str) else user_id,
                 "role": claims.get('role', 'USER'),
                 "claims": claims
             }
@@ -83,7 +83,7 @@ def require_role(*allowed_roles):
                     }), 403
                 
                 g.user = {
-                    "user_id": user_id,
+                    "user_id": int(user_id) if isinstance(user_id, str) else user_id,
                     "role": user_role,
                     "claims": claims
                 }
@@ -133,7 +133,7 @@ def require_admin(f):
                 }), 403
             
             g.user = {
-                "user_id": user_id,
+                "user_id": int(user_id) if isinstance(user_id, str) else user_id,
                 "role": user_role,
                 "claims": claims
             }
@@ -170,7 +170,7 @@ def optional_auth(f):
             if user_id:
                 claims = get_jwt()
                 g.user = {
-                    "user_id": user_id,
+                    "user_id": int(user_id) if isinstance(user_id, str) else user_id,
                     "role": claims.get('role', 'USER'),
                     "claims": claims
                 }

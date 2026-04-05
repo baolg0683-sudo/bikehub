@@ -77,13 +77,11 @@ def register():
         ).decode('utf-8')
         
         # Create new user
-        new_user = UserModel(
-            username=data['username'],
-            password_hash=hashed_password,
-            email=data.get('email'),
-            full_name=data.get('full_name', ''),
-            role=data.get('role', 'USER')
-        )
+        new_user = UserModel()
+        new_user.username = data['username']  # type: ignore[assignment]
+        new_user.password_hash = hashed_password  # type: ignore[assignment]
+        new_user.full_name = data.get('full_name', '')  # type: ignore[assignment]
+        new_user.role = data.get('role', 'USER')  # type: ignore[assignment]
         
         db.session.add(new_user)
         db.session.commit()
@@ -170,8 +168,8 @@ def login():
         
         # Generate tokens
         tokens = TokenManager.create_tokens(
-            user_id=user.user_id,
-            user_role=user.role
+            user_id=int(user.user_id),  # type: ignore[arg-type]
+            user_role=str(user.role)
         )
         
         return jsonify({
@@ -308,7 +306,6 @@ def get_current_user_info():
                 "user_id": user.user_id,
                 "username": user.username,
                 "role": user.role,
-                "email": user.email or "",
                 "full_name": user.full_name or ""
             }
         }), 200

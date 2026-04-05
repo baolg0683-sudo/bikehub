@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 from api.middleware.auth import require_auth, optional_auth
 from infrastructure.databases import SessionLocal
-from infrastructure.models.sell.models import Listing
+from infrastructure.models.sell.models import Listing, ListingImage
 from decimal import Decimal
 import re
 
@@ -24,6 +24,7 @@ def get_listings():
                 "status": r.status,
                 "seller_id": r.seller_id,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
+                "images": [img.url for img in db.query(ListingImage).filter(ListingImage.listing_id == r.listing_id).all()],
             }
             for r in rows
         ]
@@ -54,6 +55,8 @@ def create_listing():
     except Exception:
         price = Decimal('0')
 
+    images = data.get('images') or []
+
     db = SessionLocal()
     try:
         listing = Listing(
@@ -64,8 +67,24 @@ def create_listing():
             status=data.get('status', 'PENDING')
         )
         db.add(listing)
+        # flush to get a listing_id for FK relations
+        db.flush()
+
+        # Persist any provided image URLs
+        if isinstance(images, list) and images:
+            for img_url in images:
+                try:
+                    li = ListingImage(listing_id=listing.listing_id, url=str(img_url))
+                    db.add(li)
+                except Exception:
+                    # skip invalid entries
+                    continue
+
         db.commit()
         db.refresh(listing)
+
+        # return created object including images
+        image_urls = [img.url for img in db.query(ListingImage).filter(ListingImage.listing_id == listing.listing_id).all()]
 
         return jsonify({
             "listing_id": listing.listing_id,
@@ -75,6 +94,7 @@ def create_listing():
             "status": listing.status,
             "seller_id": listing.seller_id,
             "created_at": listing.created_at.isoformat() if listing.created_at else None,
+            "images": image_urls,
         }), 201
     except Exception as e:
         db.rollback()

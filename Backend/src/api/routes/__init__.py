@@ -7,6 +7,10 @@ try:
     from ..controllers.order_controller import order_bp
 except ImportError:
     order_bp = None
+try:
+    from ..controllers.listing_controller import listing_bp
+except ImportError:
+    listing_bp = None
 
 __all__ = ['auth_endpoints_bp', 'register_routes']
 
@@ -19,3 +23,6 @@ def register_routes(app: Flask):
     # Register order routes if available
     if order_bp:
         app.register_blueprint(order_bp, url_prefix='/api')
+    # Register listing routes if available
+    if listing_bp:
+        app.register_blueprint(listing_bp, url_prefix='/api')

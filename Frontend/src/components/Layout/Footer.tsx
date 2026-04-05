@@ -11,7 +11,7 @@ const Footer: React.FC<FooterProps> = () => {
           <div className="footer-section">
             <h3 className="footer-title">
               <span className="footer-icon">
-                <img src="/assets/favicon.ico" width={24} height={24} />
+                <img src="/assets/favicon.ico" width={24} height={24} alt="BikeMarket logo" />
               </span> BikeMarket
             </h3>
             <p className="footer-text">

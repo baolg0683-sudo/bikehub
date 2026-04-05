@@ -34,9 +34,38 @@ export default function PostCarPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setStatus("Bạn đã gửi nội dung. Hiện tại đây chỉ là giao diện mẫu.");
+    setStatus("Đang gửi...");
+    try {
+      const storedToken = typeof window !== 'undefined' ? window.localStorage.getItem('authToken') : '';
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (storedToken) headers["Authorization"] = `Bearer ${storedToken}`;
+
+      const resp = await fetch("http://127.0.0.1:9999/api/listings", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(form),
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || resp.statusText);
+      }
+      const data = await resp.json();
+      setStatus(`Tin đã gửi (ID: ${data.listing_id})`);
+      setForm({
+        title: "",
+        brand: "Giant",
+        year: "",
+        mileage: "",
+        condition: "Đã qua sử dụng",
+        price: "",
+        description: "",
+        additionalSpecs: "",
+      });
+    } catch (err: any) {
+      setStatus(`Lỗi khi gửi: ${err?.message || err}`);
+    }
   };
 
   return (

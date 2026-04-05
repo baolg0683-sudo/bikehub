@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from config import Config
 from config_jwt import JWTConfig
@@ -25,12 +25,49 @@ def create_app():
     # Initialize database
     init_db(app)
     
-    # Import models to register them with db
+    # Import models to register them with db and Base metadata
     with app.app_context():
+        # Flask-SQLAlchemy models
         from infrastructure.models.auth.user_model import UserModel
         db.create_all()
+
+        # Declarative Base models (SQLAlchemy Core models)
+        from infrastructure.databases import Base
+        # Import module(s) that define Base-based models so they are registered
+        try:
+            from infrastructure.models.sell.models import Listing  # ensure Listing is imported
+        except Exception:
+            Listing = None
+
+        # Create tables for Base metadata (e.g., listings schema)
+        # SQLite does not support named schemas (Postgres-style). When running
+        # with SQLite, clear any schema qualifiers on tables so create_all
+        # will not attempt schema-qualified CREATE statements.
+        try:
+            if getattr(db.engine, 'dialect', None) and db.engine.dialect.name == 'sqlite':
+                # Log table schema info before altering (helps debug schema issues on SQLite)
+                print("[create_app] Detected sqlite engine - clearing table.schema for Base.metadata.tables")
+                for tbl in list(Base.metadata.tables.values()):
+                    print(f"[create_app] before clear: table={tbl.name}, schema={tbl.schema}")
+                for tbl in list(Base.metadata.tables.values()):
+                    tbl.schema = None
+                for tbl in list(Base.metadata.tables.values()):
+                    print(f"[create_app] after clear: table={tbl.name}, schema={tbl.schema}")
+        except Exception as e:
+            print(f"[create_app] error while clearing schemas: {e}")
+
+        Base.metadata.create_all(bind=db.engine)
     
     setup_middleware(app)
     register_routes(app)
+
+    # Basic index and health endpoints for quick validation
+    @app.route("/")
+    def index():
+        return jsonify({"message": "BikeHub API"}), 200
+
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
 
     return app

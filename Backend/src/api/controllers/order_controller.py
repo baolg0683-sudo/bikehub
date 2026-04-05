@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from services.order_service import OrderService
-from infrastructure.databases import db
 
 order_bp = Blueprint('order', __name__)
 
@@ -32,7 +31,6 @@ def create_order():
         )
         return jsonify({'order_id': order.order_id, 'status': order.status}), 201
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
 @order_bp.route('/orders/<int:order_id>/deposit', methods=['POST'])
@@ -43,7 +41,6 @@ def deposit(order_id):
         order = OrderService.deposit_process(order_id, buyer_id)
         return jsonify({'order_id': order.order_id, 'status': order.status}), 200
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
 @order_bp.route('/orders/<int:order_id>/payout', methods=['POST'])
@@ -54,7 +51,6 @@ def payout(order_id):
         order = OrderService.payout_process(order_id, buyer_id)
         return jsonify({'order_id': order.order_id, 'status': order.status}), 200
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
 @order_bp.route('/orders/<int:order_id>/refund', methods=['POST'])
@@ -65,5 +61,4 @@ def refund(order_id):
         order = OrderService.refund_process(order_id, admin_id)
         return jsonify({'order_id': order.order_id, 'status': order.status}), 200
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 400

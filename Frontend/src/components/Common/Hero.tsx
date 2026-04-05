@@ -11,7 +11,7 @@ const Hero: React.FC<HeroProps> = () => {
         <p className="hero-subtitle">Khám phá bộ sưu tập xe đạp đã qua sử dụng chất lượng cao với giá tốt nhất!</p>
         <div className="hero-search">
           <input type="search" placeholder="Tìm kiếm xe đạp theo hãng, model..." className="search-input" />
-          <select className="search-select">
+          <select className="search-select" title="Chọn loại xe đạp">
             <option>Tất cả loại xe</option>
             <option>Xe đạp địa hình</option>
             <option>Xe đạp đường phố</option>

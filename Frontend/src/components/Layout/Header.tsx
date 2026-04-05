@@ -42,7 +42,9 @@ const Header: React.FC<HeaderProps> = () => {
         {/* Nút hành động */}
         <div className="header-actions">
           <button className="btn-login">Đăng nhập</button>
-          <button className="btn-post">Đăng tin</button>
+          <Link href="/post" className="btn-post">
+            Đăng tin
+          </Link>
         </div>
       </div> {/* Thẻ đóng cho header-container */}
     </header>

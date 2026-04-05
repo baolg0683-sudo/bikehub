@@ -11,6 +11,10 @@ try:
     from ..controllers.listing_controller import listing_bp
 except ImportError:
     listing_bp = None
+try:
+    from ..controllers.media_controller import media_bp
+except ImportError:
+    media_bp = None
 
 __all__ = ['auth_endpoints_bp', 'register_routes']
 
@@ -26,3 +30,6 @@ def register_routes(app: Flask):
     # Register listing routes if available
     if listing_bp:
         app.register_blueprint(listing_bp, url_prefix='/api')
+    # Register media/upload routes
+    if media_bp:
+        app.register_blueprint(media_bp, url_prefix='/api')

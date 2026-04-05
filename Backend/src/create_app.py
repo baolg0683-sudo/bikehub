@@ -7,6 +7,7 @@ from api.middleware.auth import register_jwt_error_handlers
 from api.routes import register_routes
 from infrastructure.databases import init_db, db
 from app_logging import setup_logging
+from cors import init_cors
 
 def create_app():
     app = Flask(__name__)
@@ -15,6 +16,7 @@ def create_app():
     app.config.setdefault('SQLALCHEMY_DATABASE_URI', app.config.get('DATABASE_URI'))
 
     setup_logging()
+    init_cors(app)
     
     # Initialize JWT
     jwt = JWTManager(app)

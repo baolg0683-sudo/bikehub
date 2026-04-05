@@ -266,6 +266,73 @@ def logout():
     }), 200
 
 
+@auth_endpoints_bp.route('/profile', methods=['PATCH'])
+@require_auth
+def update_profile():
+    """
+    Update authenticated user's profile information.
+    Fields allowed: full_name, phone, password
+    """
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "No profile data provided"
+            }), 400
+
+        user_id = g.user.get('user_id')
+        user = db.session.query(UserModel).filter(
+            UserModel.user_id == user_id
+        ).first()
+
+        if not user:
+            return jsonify({
+                "success": False,
+                "error": "Not found",
+                "message": "User not found"
+            }), 404
+
+        if 'full_name' in data:
+            user.full_name = data.get('full_name', user.full_name)  # type: ignore[assignment]
+        if 'phone' in data:
+            user.phone = data.get('phone', user.phone)  # type: ignore[assignment]
+        if 'password' in data and data.get('password'):
+            if len(data.get('password')) < 6:
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Password must be at least 6 characters"
+                }), 400
+            salt = bcrypt.gensalt()
+            user.password_hash = bcrypt.hashpw(  # type: ignore[assignment]
+                data['password'].encode('utf-8'),
+                salt
+            ).decode('utf-8')
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully",
+            "data": {
+                "user_id": user.user_id,
+                "username": user.username,
+                "role": user.role,
+                "full_name": user.full_name or "",
+                "phone": user.phone or ""
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Server error",
+            "message": str(e)
+        }), 500
+
+
 @auth_endpoints_bp.route('/me', methods=['GET'])
 @require_auth
 def get_current_user_info():
@@ -306,7 +373,8 @@ def get_current_user_info():
                 "user_id": user.user_id,
                 "username": user.username,
                 "role": user.role,
-                "full_name": user.full_name or ""
+                "full_name": user.full_name or "",
+                "phone": user.phone or ""
             }
         }), 200
         

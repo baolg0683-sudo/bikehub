@@ -1,0 +1,92 @@
+.profilePage {
+  padding: 2rem;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.profileTitle {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.profileIntro {
+  margin-bottom: 1rem;
+  color: #4b5563;
+}
+
+.tokenSection,
+.profileForm {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tokenBox {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.buttonPrimary,
+.buttonSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.25rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.buttonPrimary {
+  background: #16a34a;
+  color: white;
+}
+
+.buttonSecondary {
+  background: #2563eb;
+  color: white;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fieldLabel {
+  font-weight: 600;
+  color: #111827;
+}
+
+.fieldInput {
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  font-family: inherit;
+}
+
+.fieldInputDisabled {
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.feedbackMessage {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+.feedbackSuccess {
+  color: #166534;
+}
+
+.feedbackError {
+  color: #b91c1c;
+}

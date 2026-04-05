@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface HeaderProps {}
 
@@ -16,20 +17,20 @@ const Header: React.FC<HeaderProps> = () => {
 
         {/* Menu điều hướng */}
         <nav className="header-nav">
-          <a href="#" className="nav-link">
+          <Link href="/" className="nav-link">
             Trang chủ
             <span className="nav-underline"></span>
-          </a>
+          </Link>
+          <Link href="/profile" className="nav-link">
+            Hồ sơ
+            <span className="nav-underline"></span>
+          </Link>
           <a href="#" className="nav-link">
             Sản phẩm
             <span className="nav-underline"></span>
           </a>
           <a href="#" className="nav-link">
             Dịch vụ
-            <span className="nav-underline"></span>
-          </a>
-          <a href="#" className="nav-link">
-            Khuyến mãi
             <span className="nav-underline"></span>
           </a>
           <a href="#" className="nav-link">

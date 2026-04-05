@@ -1,11 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, Numeric, func
-from sqlalchemy.ext.declarative import declarative_base
+from infrastructure.databases import db
 
-Base = declarative_base()
-
-class UserModel(Base):
+class UserModel(db.Model):
     __tablename__ = 'users'
-    __table_args__ = {'schema': 'auth'}
 
     user_id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)

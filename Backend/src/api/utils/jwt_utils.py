@@ -3,6 +3,7 @@ JWT Utilities for token creation, validation, and management
 """
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Any
 from flask import current_app, jsonify, g
 from flask_jwt_extended import (
     create_access_token,
@@ -18,7 +19,7 @@ class TokenManager:
     """Manage JWT token creation and validation"""
     
     @staticmethod
-    def create_tokens(user_id: int, user_role: str = 'USER', additional_claims: dict = None):
+    def create_tokens(user_id: int, user_role: str = 'USER', additional_claims: dict[str, Any] | None = None):
         """
         Create both access and refresh tokens for a user
         
@@ -38,8 +39,8 @@ class TokenManager:
         if additional_claims:
             claims.update(additional_claims)
         
-        access_token = create_access_token(identity=user_id, additional_claims=claims)
-        refresh_token = create_refresh_token(identity=user_id, additional_claims={'role': user_role})
+        access_token = create_access_token(identity=str(user_id), additional_claims=claims)
+        refresh_token = create_refresh_token(identity=str(user_id), additional_claims={'role': user_role})
         
         return {
             'access_token': access_token,
@@ -61,7 +62,7 @@ class TokenManager:
             str: New access token
         """
         return create_access_token(
-            identity=user_id,
+            identity=str(user_id),
             additional_claims={
                 'user_id': user_id,
                 'role': user_role,

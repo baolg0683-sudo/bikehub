@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import styles from "./post.module.css";
 
 const carBrands = [
   "Giant",

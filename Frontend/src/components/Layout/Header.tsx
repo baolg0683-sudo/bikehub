@@ -1,50 +1,72 @@
-import React from "react";
+'use client';
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import styles from "./Header.module.css";
 
 interface HeaderProps {}
 
 const Header: React.FC<HeaderProps> = () => {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const updateLoginState = () => {
+      setLoggedIn(!!window.localStorage.getItem("authToken"));
+    };
+
+    updateLoginState();
+    window.addEventListener("storage", updateLoginState);
+    return () => window.removeEventListener("storage", updateLoginState);
+  }, []);
   return (
-    <header className="header">
-      <div className="header-container">
+    <header className={styles.header}>
+      <div className={styles.headerContainer}>
         {/* Cửa hàng Logo */}
-        <div className="header-logo">
-          <div className="logo-icon">
+        <div className={styles.headerLogo}>
+          <div className={styles.logoIcon}>
             <img src="/assets/favicon.ico" width={24} height={24} alt="logo" />
-            <span>BikeMarket</span>
+            <span className={styles.logoText}>BikeMarket</span>
           </div>
         </div> {/* Thêm thẻ đóng cho header-logo */}
 
         {/* Menu điều hướng */}
-        <nav className="header-nav">
-          <Link href="/" className="nav-link">
+        <nav className={styles.headerNav}>
+          <Link href="/" className={styles.navLink}>
             Trang chủ
             <span className="nav-underline"></span>
           </Link>
-          <Link href="/profile" className="nav-link">
-            Hồ sơ
-            <span className="nav-underline"></span>
-          </Link>
-          <a href="#" className="nav-link">
+          {loggedIn && (
+            <Link href="/profile" className={styles.navLink}>
+              Hồ sơ
+              <span className="nav-underline"></span>
+            </Link>
+          )}
+          <a href="#" className={styles.navLink}>
             Sản phẩm
-            <span className="nav-underline"></span>
+            <span className={styles.navUnderline}></span>
           </a>
-          <a href="#" className="nav-link">
+          <a href="#" className={styles.navLink}>
             Dịch vụ
-            <span className="nav-underline"></span>
+            <span className={styles.navUnderline}></span>
           </a>
-          <a href="#" className="nav-link">
+          <a href="#" className={styles.navLink}>
             Liên hệ
-            <span className="nav-underline"></span>
+            <span className={styles.navUnderline}></span>
           </a>
         </nav>
 
         {/* Nút hành động */}
-        <div className="header-actions">
-          <button className="btn-login">Đăng nhập</button>
-          <Link href="/post" className="btn-post">
-            Đăng tin
-          </Link>
+        <div className={styles.headerActions}>
+          {!loggedIn && (
+            <Link href="/login" className={styles.btnLogin}>
+              Đăng nhập
+            </Link>
+          )}
+          {loggedIn && (
+            <Link href="/post" className={styles.btnPost}>
+              Đăng tin
+            </Link>
+          )}
         </div>
       </div> {/* Thẻ đóng cho header-container */}
     </header>

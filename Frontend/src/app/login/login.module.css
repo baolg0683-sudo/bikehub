@@ -1,0 +1,310 @@
+.loginPage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1rem 4rem;
+}
+
+.loginHero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 2rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+  padding: 2.5rem;
+  border-radius: 1.75rem;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.08);
+  margin-bottom: 2rem;
+}
+
+.loginHeroCopy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #d4443f;
+  margin-bottom: 1rem;
+}
+
+.loginHeroCopy h1 {
+  font-size: clamp(2rem, 2.8vw, 3.4rem);
+  line-height: 1.05;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.loginHeroCopy p {
+  color: #4b5563;
+  max-width: 700px;
+  margin-bottom: 1.75rem;
+  line-height: 1.75;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.heroAction,
+.authTab,
+.authSubmit,
+.previewCard,
+.linkButton {
+  transition: all 0.25s ease;
+}
+
+.heroAction {
+  border: 1px solid #d4443f;
+  background: white;
+  color: #d4443f;
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.active,
+.heroAction:hover {
+  background: #d4443f;
+  color: white;
+}
+
+.loginHeroPanel {
+  padding: 2rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.panelHeadline {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.panelList {
+  display: grid;
+  gap: 1rem;
+}
+
+.panelItem {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.2rem;
+  border: 1px solid #e5e7eb;
+}
+
+.panelItemTitle {
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.panelItemText {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.authSection {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.authCard {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.authHeader {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.authTab {
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #374151;
+  padding: 0.95rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.authTab.active {
+  background: #d4443f;
+  color: white;
+  border-color: #d4443f;
+}
+
+.authCopy {
+  margin-bottom: 1.5rem;
+  color: #4b5563;
+  line-height: 1.75;
+}
+
+.authNote {
+  margin-top: 0.85rem;
+  color: #6b7280;
+}
+
+.authForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.authForm input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  font-size: 1rem;
+  color: #111827;
+  outline: none;
+  background: #ffffff;
+}
+
+.authForm input:focus {
+  border-color: #d4443f;
+  box-shadow: 0 0 0 4px rgba(212, 68, 63, 0.08);
+}
+
+.authSubmit {
+  width: 100%;
+  padding: 1rem 1.2rem;
+  border: none;
+  border-radius: 1rem;
+  background: #d4443f;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.authSubmit:hover {
+  background: #b02a2a;
+}
+
+.authFooter {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #6b7280;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #d4443f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+.loginPreviewGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.previewCard {
+  text-align: left;
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 1.6rem;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.previewCard:hover {
+  transform: translateY(-4px);
+  border-color: #d4443f;
+  box-shadow: 0 16px 32px rgba(212, 68, 63, 0.12);
+}
+
+.previewTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.previewText {
+  color: #4b5563;
+  margin-bottom: 1rem;
+  line-height: 1.75;
+}
+
+.previewAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #d4443f;
+  font-weight: 700;
+}
+
+.loginNotice {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+  max-width: min(95%, 420px);
+  text-align: center;
+  z-index: 50;
+}
+
+@media (max-width: 992px) {
+  .loginHero,
+  .authSection {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .loginPage {
+    padding: 2rem 0.8rem 3rem;
+  }
+
+  .loginHero,
+  .authCard,
+  .loginHeroPanel {
+    padding: 1.5rem;
+  }
+
+  .heroActions,
+  .authHeader,
+  .authFooter {
+    display: grid;
+    gap: 0.75rem;
+  }
+}

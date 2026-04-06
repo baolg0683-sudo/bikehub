@@ -173,6 +173,12 @@
   gap: 1rem;
 }
 
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .authForm input {
   width: 100%;
   border: 1px solid #d1d5db;
@@ -189,6 +195,37 @@
   box-shadow: 0 0 0 4px rgba(212, 68, 63, 0.08);
 }
 
+.inputError {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08) !important;
+}
+
+.inputSuccess {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.08) !important;
+}
+
+.errorText {
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.successText {
+  color: #16a34a;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.checkingText {
+  color: #f59e0b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
 .authSubmit {
   width: 100%;
   padding: 1rem 1.2rem;
@@ -198,6 +235,12 @@
   color: white;
   font-weight: 700;
   cursor: pointer;
+}
+
+.authSubmit:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .authSubmit:hover {

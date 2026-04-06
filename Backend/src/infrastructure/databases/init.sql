@@ -13,16 +13,18 @@ CREATE SCHEMA interactions;-- Chat & Đánh giá
 -----------------------------------------------------------
 CREATE TABLE auth.users (
     user_id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100),
-    phone VARCHAR(20),
-    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'SELLER', 'BUYER', 'INSPECTOR')),
-    balance DECIMAL(15, 2) DEFAULT 0.00, -- Tiền khả dụng trong ví
-    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, BANNED
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    date_of_birth DATE,
+    avatar_url TEXT,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'USER')),
+    reputation_score FLOAT DEFAULT 5.0,
+    certificate_id VARCHAR(50),
+    status VARCHAR(20) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 -----------------------------------------------------------
 -- 2. LISTING SERVICE
 -----------------------------------------------------------

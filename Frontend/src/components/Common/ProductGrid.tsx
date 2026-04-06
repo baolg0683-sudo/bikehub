@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./ProductGrid.module.css";
 
 interface ProductCardProps {
   image: string;
@@ -9,17 +10,17 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ image, title, condition, price }) => {
   return (
-    <article className="product-card">
-      <div className="product-image-container">
-        <img src={image} alt={title} className="product-image" />
-        <div className="product-badge">Hot</div>
+    <article className={styles.productCard}>
+      <div className={styles.productImageContainer}>
+        <img src={image} alt={title} className={styles.productImage} />
+        <div className={styles.productBadge}>Hot</div>
       </div>
-      <div className="product-content">
-        <h4 className="product-title">{title}</h4>
-        <p className="product-condition">Tình trạng: <span className="condition-text">{condition}</span></p>
-        <div className="product-footer">
-          <p className="product-price">{price}</p>
-          <button className="product-btn">Xem chi tiết</button>
+      <div className={styles.productContent}>
+        <h4 className={styles.productTitle}>{title}</h4>
+        <p className={styles.productCondition}>Tình trạng: <span className={styles.conditionText}>{condition}</span></p>
+        <div className={styles.productFooter}>
+          <p className={styles.productPrice}>{price}</p>
+          <button className={styles.productBtn}>Xem chi tiết</button>
         </div>
       </div>
     </article>
@@ -39,13 +40,13 @@ const ProductGrid: React.FC<ProductGridProps> = () => {
   ];
 
   return (
-    <section className="products-section">
-      <div className="products-container">
-        <div className="products-header">
-          <h3 className="products-title">Sản phẩm nổi bật</h3>
-          <p className="products-subtitle">Khám phá những chiếc xe đạp chất lượng cao với giá cả phải chăng</p>
+    <section className={styles.productsSection}>
+      <div className={styles.productsContainer}>
+        <div className={styles.productsHeader}>
+          <h3 className={styles.productsTitle}>Sản phẩm nổi bật</h3>
+          <p className={styles.productsSubtitle}>Khám phá những chiếc xe đạp chất lượng cao với giá cả phải chăng</p>
         </div>
-        <div className="products-grid">
+        <div className={styles.productsGrid}>
           {products.map((product, index) => (
             <ProductCard
               key={index}
@@ -56,8 +57,8 @@ const ProductGrid: React.FC<ProductGridProps> = () => {
             />
           ))}
         </div>
-        <div className="products-footer">
-          <button className="products-view-all">Xem tất cả sản phẩm</button>
+        <div className={styles.productsFooter}>
+          <button className={styles.productsViewAll}>Xem tất cả sản phẩm</button>
         </div>
       </div>
     </section>

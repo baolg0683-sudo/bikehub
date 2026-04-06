@@ -1,0 +1,12 @@
+{
+  "name": "bikehub-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "python src/app.py",
+    "start": "python src/app.py",
+    "setup": "pip install -r src/requirements.txt",
+    "lint": "echo \"No JS lint configured for backend\"",
+    "test": "echo \"No JS tests configured for backend\""
+  }
+}

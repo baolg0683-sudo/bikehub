@@ -2,8 +2,13 @@
 Authentication Endpoints for BikeHub API
 Handles user login, token refresh, and logout
 """
+import re
+from datetime import datetime
+
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from sqlalchemy import or_
+
 from api.middleware.auth import require_auth, require_admin
 from api.utils.jwt_utils import TokenManager, get_current_user
 from infrastructure.databases import db
@@ -11,7 +16,97 @@ from infrastructure.models.auth.user_model import UserModel
 import bcrypt
 
 # Create auth blueprint
-auth_endpoints_bp = Blueprint('auth_endpoints', __name__, url_prefix='/api/auth')
+auth_endpoints_bp = Blueprint('auth_endpoints', __name__, url_prefix='/api/users')
+
+
+@auth_endpoints_bp.route('/check-uniqueness', methods=['POST'])
+def check_uniqueness():
+    """
+    Check if email or phone is already taken.
+    
+    Request body:
+    {
+        "email": "string (optional)",
+        "phone": "string (optional)"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "available": {
+            "email": true|false,
+            "phone": true|false
+        }
+    }
+    """
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "No data provided"
+            }), 400
+
+        email = data.get('email', '').strip().lower() if data.get('email') else None
+        phone = data.get('phone', '').strip() if data.get('phone') else None
+
+        if not email and not phone:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Email or phone is required"
+            }), 400
+
+        result = {"email": True, "phone": True}
+
+        if email:
+            # Validate email format first
+            if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Email format is invalid"
+                }), 400
+            
+            existing_email = db.session.query(UserModel).filter(UserModel.email == email).first()
+            result["email"] = existing_email is None
+
+        if phone:
+            # Clean and validate phone format first
+            cleaned_phone = re.sub(r'[^0-9+]', '', phone)
+            digits_only = re.sub(r'[^0-9]', '', cleaned_phone)
+            
+            # Check if starts with 0
+            if not digits_only.startswith('0'):
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Phone must start with 0"
+                }), 400
+            
+            # Check length (10-11 digits for Vietnam)
+            if not cleaned_phone or len(digits_only) < 10 or len(digits_only) > 11:
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Phone format is invalid (10-11 digits)"
+                }), 400
+            
+            existing_phone = db.session.query(UserModel).filter(UserModel.phone == cleaned_phone).first()
+            result["phone"] = existing_phone is None
+
+        return jsonify({
+            "success": True,
+            "available": result
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Server error",
+            "message": str(e)
+        }), 500
 
 
 @auth_endpoints_bp.route('/register', methods=['POST'])
@@ -21,11 +116,12 @@ def register():
     
     Request body:
     {
-        "username": "string",
-        "password": "string (min 6 chars)",
         "email": "string",
+        "password": "string (min 6 chars)",
+        "phone": "string",
         "full_name": "string (optional)",
-        "role": "USER|SELLER|BUYER|INSPECTOR|ADMIN"
+        "date_of_birth": "YYYY-MM-DD (optional)",
+        "role": "ADMIN|USER"
     }
     
     Response:
@@ -34,68 +130,138 @@ def register():
         "message": "User registered successfully",
         "user": {
             "user_id": int,
-            "username": "string",
+            "email": "string",
+            "phone": "string",
             "role": "string"
         }
     }
     """
     try:
-        data = request.get_json()
-        
-        # Validation
-        if not data or not data.get('username') or not data.get('password'):
+        data = request.get_json(silent=True)
+        if not data:
             return jsonify({
                 "success": False,
                 "error": "Validation error",
-                "message": "Username and password are required"
+                "message": "No data provided"
             }), 400
-        
-        if len(data.get('password', '')) < 6:
+
+        email = str(data.get('email', '')).strip().lower()
+        password = str(data.get('password', ''))
+        phone = str(data.get('phone', '')).strip()
+        full_name = str(data.get('full_name', '')).strip()
+        date_of_birth_str = data.get('date_of_birth')
+        role = str(data.get('role', 'USER')).upper()
+
+        valid_roles = ['ADMIN', 'USER']
+
+        if len(password) < 6:
             return jsonify({
                 "success": False,
                 "error": "Validation error",
                 "message": "Password must be at least 6 characters long"
             }), 400
+
+        if not email or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Email không hợp lệ"
+            }), 400
+
+        cleaned_phone = re.sub(r'[^0-9+]', '', phone)
+        digits_only = re.sub(r'[^0-9]', '', cleaned_phone)
         
-        # Check if user already exists
+        # Check if starts with 0
+        if not digits_only.startswith('0'):
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Số điện thoại phải bắt đầu bằng 0"
+            }), 400
+        
+        # Check length (10-11 digits for Vietnam)
+        if not digits_only or len(digits_only) < 10 or len(digits_only) > 11:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Số điện thoại không hợp lệ (10-11 chữ số)"
+            }), 400
+
+        if not full_name or len(full_name) < 2:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Họ tên không được để trống"
+            }), 400
+
+        # Validate date of birth if provided
+        date_of_birth = None
+        if date_of_birth_str:
+            try:
+                date_of_birth = datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
+                # Check if user is at least 13 years old
+                today = datetime.now().date()
+                age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
+                if age < 13:
+                    return jsonify({
+                        "success": False,
+                        "error": "Validation error",
+                        "message": "Bạn phải từ 13 tuổi trở lên"
+                    }), 400
+            except ValueError:
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Ngày sinh không hợp lệ (định dạng: YYYY-MM-DD)"
+                }), 400
+
+        if role not in valid_roles:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": f"Role must be one of: {', '.join(valid_roles)}"
+            }), 400
+
         existing_user = db.session.query(UserModel).filter(
-            UserModel.username == data['username']
+            or_(
+                UserModel.email == email,
+                UserModel.phone == cleaned_phone
+            )
         ).first()
-        
+
         if existing_user:
+            conflict_field = 'email' if existing_user.email == email else 'phone'
             return jsonify({
                 "success": False,
                 "error": "Conflict",
-                "message": "Username already exists"
+                "message": f"{conflict_field.capitalize()} đã tồn tại"
             }), 409
-        
-        # Hash password
+
         salt = bcrypt.gensalt()
-        hashed_password = bcrypt.hashpw(
-            data['password'].encode('utf-8'),
-            salt
-        ).decode('utf-8')
-        
-        # Create new user
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
         new_user = UserModel()
-        new_user.username = data['username']  # type: ignore[assignment]
+        new_user.email = email  # type: ignore[assignment]
         new_user.password_hash = hashed_password  # type: ignore[assignment]
-        new_user.full_name = data.get('full_name', '')  # type: ignore[assignment]
-        new_user.role = data.get('role', 'USER')  # type: ignore[assignment]
-        
+        new_user.full_name = full_name  # type: ignore[assignment]
+        new_user.phone = cleaned_phone  # type: ignore[assignment]
+        new_user.date_of_birth = date_of_birth  # type: ignore[assignment]
+        new_user.role = role  # type: ignore[assignment]
+
         db.session.add(new_user)
         db.session.commit()
-        
+
         return jsonify({
             "success": True,
             "message": "User registered successfully",
             "user": {
                 "user_id": new_user.user_id,
-                "username": new_user.username,
+                "email": new_user.email,
+                "phone": new_user.phone,
                 "role": new_user.role
             }
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
@@ -112,7 +278,7 @@ def login():
     
     Request body:
     {
-        "username": "string",
+        "identifier": "email|phone",
         "password": "string"
     }
     
@@ -127,51 +293,46 @@ def login():
             "expires_in": int (seconds),
             "user": {
                 "user_id": int,
-                "username": "string",
-                "role": "string"
+                "email": "string",
+                "phone": "string",
+                "role": "string",
+                "reputation_score": float,
+                "certificate_id": "string"
             }
         }
     }
     """
     try:
-        data = request.get_json()
-        
-        if not data or not data.get('username') or not data.get('password'):
+        data = request.get_json(silent=True)
+        if not data or not data.get('identifier') or not data.get('password'):
             return jsonify({
                 "success": False,
                 "error": "Validation error",
-                "message": "Username and password are required"
+                "message": "Identifier and password are required"
             }), 400
-        
-        # Find user by username
+
+        identifier = str(data.get('identifier', '')).strip()
+        password = str(data.get('password', ''))
+
         user = db.session.query(UserModel).filter(
-            UserModel.username == data['username']
+            or_(
+                UserModel.email == identifier,
+                UserModel.phone == identifier
+            )
         ).first()
-        
-        if not user:
+
+        if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
             return jsonify({
                 "success": False,
                 "error": "Authentication error",
-                "message": "Invalid username or password"
+                "message": "Invalid email/phone or password"
             }), 401
-        
-        # Verify password
-        if not bcrypt.checkpw(
-            data['password'].encode('utf-8'),
-            user.password_hash.encode('utf-8')
-        ):
-            return jsonify({
-                "success": False,
-                "error": "Authentication error",
-                "message": "Invalid username or password"
-            }), 401
-        
-        # Generate tokens
+
         tokens = TokenManager.create_tokens(
             user_id=int(user.user_id),  # type: ignore[arg-type]
             user_role=str(user.role)
         )
-        
+
         return jsonify({
             "success": True,
             "message": "Login successful",
@@ -179,12 +340,15 @@ def login():
                 **tokens,
                 "user": {
                     "user_id": user.user_id,
-                    "username": user.username,
-                    "role": user.role
+                    "email": user.email,
+                    "phone": user.phone,
+                    "role": user.role,
+                    "reputation_score": user.reputation_score,
+                    "certificate_id": user.certificate_id
                 }
             }
         }), 200
-        
+
     except Exception as e:
         return jsonify({
             "success": False,
@@ -271,7 +435,7 @@ def logout():
 def update_profile():
     """
     Update authenticated user's profile information.
-    Fields allowed: full_name, phone, password
+    Fields allowed: full_name, email, phone, certificate_id, password
     """
     try:
         data = request.get_json(silent=True)
@@ -295,9 +459,51 @@ def update_profile():
             }), 404
 
         if 'full_name' in data:
-            user.full_name = data.get('full_name', user.full_name)  # type: ignore[assignment]
+            full_name = str(data.get('full_name', user.full_name or '')).strip()
+            if full_name and len(full_name) < 2:
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Họ tên không hợp lệ"
+                }), 400
+            user.full_name = full_name  # type: ignore[assignment]
+        if 'certificate_id' in data:
+            user.certificate_id = str(data.get('certificate_id', user.certificate_id or '')).strip()  # type: ignore[assignment]
+        if 'email' in data:
+            email = str(data.get('email', user.email or '')).strip().lower()
+            if not email or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Email không hợp lệ"
+                }), 400
+            if email != user.email:
+                existing_email = db.session.query(UserModel).filter(UserModel.email == email).first()
+                if existing_email:
+                    return jsonify({
+                        "success": False,
+                        "error": "Conflict",
+                        "message": "Email đã tồn tại"
+                    }), 409
+            user.email = email  # type: ignore[assignment]
         if 'phone' in data:
-            user.phone = data.get('phone', user.phone)  # type: ignore[assignment]
+            phone = str(data.get('phone', user.phone or '')).strip()
+            cleaned_phone = re.sub(r'[^0-9+]', '', phone)
+            if cleaned_phone and (len(re.sub(r'[^0-9]', '', cleaned_phone)) < 9 or len(re.sub(r'[^0-9]', '', cleaned_phone)) > 15):
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Số điện thoại không hợp lệ"
+                }), 400
+            if cleaned_phone and cleaned_phone != user.phone:
+                existing_phone = db.session.query(UserModel).filter(UserModel.phone == cleaned_phone).first()
+                if existing_phone:
+                    return jsonify({
+                        "success": False,
+                        "error": "Conflict",
+                        "message": "Số điện thoại đã tồn tại"
+                    }), 409
+            user.phone = cleaned_phone  # type: ignore[assignment]
         if 'password' in data and data.get('password'):
             if len(data.get('password')) < 6:
                 return jsonify({
@@ -321,7 +527,9 @@ def update_profile():
                 "username": user.username,
                 "role": user.role,
                 "full_name": user.full_name or "",
-                "phone": user.phone or ""
+                "phone": user.phone or "",
+                "reputation_score": user.reputation_score,
+                "certificate_id": user.certificate_id or ""
             }
         }), 200
 
@@ -348,9 +556,12 @@ def get_current_user_info():
         "data": {
             "user_id": int,
             "username": "string",
-            "role": "string",
             "email": "string",
-            "full_name": "string"
+            "role": "string",
+            "full_name": "string",
+            "phone": "string",
+            "reputation_score": float,
+            "certificate_id": "string"
         }
     }
     """
@@ -372,9 +583,12 @@ def get_current_user_info():
             "data": {
                 "user_id": user.user_id,
                 "username": user.username,
+                "email": user.email,
                 "role": user.role,
                 "full_name": user.full_name or "",
-                "phone": user.phone or ""
+                "phone": user.phone or "",
+                "reputation_score": user.reputation_score,
+                "certificate_id": user.certificate_id or ""
             }
         }), 200
         

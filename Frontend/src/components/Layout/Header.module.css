@@ -98,5 +98,157 @@
 
 .btnPost:hover {
   background-color: #f2f2f2;
-  color: #c11e27;
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.3s ease;
+}
+
+.userInfo:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+}
+
+.userAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.defaultAvatar {
+  width: 100%;
+  height: 100%;
+  background-color: #f8fafc;
+  color: #d4443f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.userName {
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.dropdownArrow {
+  color: white;
+  font-size: 0.7rem;
+  margin-left: 0.2rem;
+}
+
+.userDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 220px;
+  z-index: 1000;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dropdownItem:hover {
+  background-color: #f8fafc;
+}
+
+.dropdownItem:active {
+  background-color: #f0f0f0;
+}
+
+.dropdownIcon {
+  font-size: 1.1rem;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #666;
+}
+
+.dropdownItem:hover .dropdownIcon {
+  color: #d4443f;
+}
+
+.walletInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
+  cursor: default;
+}
+
+.walletIcon {
+  font-size: 1.1rem;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #d4443f;
+}
+
+.walletContent {
+  flex: 1;
+}
+
+.walletLabel {
+  font-size: 0.75rem;
+  color: #999;
+  font-weight: 500;
+  margin-bottom: 0.2rem;
+}
+
+.walletBalance {
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 600;
+}
+
+
+.dropdownDivider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0.25rem 0;
 }

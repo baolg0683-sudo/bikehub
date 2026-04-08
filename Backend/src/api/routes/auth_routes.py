@@ -342,6 +342,8 @@ def login():
                     "user_id": user.user_id,
                     "email": user.email,
                     "phone": user.phone,
+                    "full_name": user.full_name,
+                    "avatar_url": user.avatar_url,
                     "role": user.role,
                     "reputation_score": user.reputation_score,
                     "certificate_id": user.certificate_id

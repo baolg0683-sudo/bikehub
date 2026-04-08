@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
 import styles from "./login.module.css";
 
 type AuthMode = "login" | "register";
@@ -29,6 +30,7 @@ interface ValidationSuccess {
 
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
   const [mode, setMode] = useState<AuthMode>("login");
   const [notice, setNotice] = useState<string>("");
   const [formData, setFormData] = useState<FormData>({
@@ -283,14 +285,19 @@ export default function LoginPage() {
         const data = await response.json();
         
         if (data.success) {
+          console.log('[Login] Success, user data:', data.data.user);
           setNotice("Đăng nhập thành công!");
-          // Store tokens if needed
-          localStorage.setItem('access_token', data.data.access_token);
-          localStorage.setItem('refresh_token', data.data.refresh_token);
-          // Redirect to home after 1 second to show success message
-          setTimeout(() => {
-            router.push('/');
-          }, 1000);
+          auth.login({
+            access_token: data.data.access_token,
+            refresh_token: data.data.refresh_token,
+            user: {
+              full_name: data.data.user.full_name,
+              email: data.data.user.email,
+              avatar_url: data.data.user.avatar_url
+            }
+          });
+          console.log('[Login] Calling router.push("/")');
+          router.push('/');
         } else {
           setNotice(data.message || "Đăng nhập thất bại. Vui lòng thử lại.");
         }

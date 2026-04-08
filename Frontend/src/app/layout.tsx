@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "../components/Layout/Header";
 import Footer from "../components/Layout/Footer";
+import { DebugAuth } from "../components/Layout/DebugAuth";
+import { AuthProvider } from "../context/AuthContext";
 
 export const metadata: Metadata = {
   title: "BikeMarket - Chợ Xe Đạp Cũ",
@@ -19,11 +21,14 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body>
-        <Header />
-        <main>
-          {children}
-        </main>
-        <Footer />
+        <AuthProvider>
+          <Header />
+          <main>
+            {children}
+          </main>
+          <Footer />
+          <DebugAuth />
+        </AuthProvider>
       </body>
     </html>
   );

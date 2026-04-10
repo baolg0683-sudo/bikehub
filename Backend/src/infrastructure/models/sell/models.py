@@ -16,15 +16,36 @@ class Listing(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-class ListingImage(Base):
-    __tablename__ = 'listing_images'
+class Media(Base):
+    __tablename__ = 'media'
     __table_args__ = {'schema': 'listings'}
 
-    image_id = Column(Integer, primary_key=True)
-    # Use a plain integer FK reference here to avoid DDL ordering/schema issues
-    # with different database backends (SQLite vs Postgres). Referential
-    # integrity is maintained at the application level when necessary.
+    media_id = Column(Integer, primary_key=True)
     listing_id = Column(Integer, nullable=False)
     url = Column(Text, nullable=False)
+    media_type = Column(String(10), default='IMAGE')
     is_primary = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Bicycle(Base):
+    __tablename__ = 'bicycles'
+    __table_args__ = {'schema': 'listings'}
+
+    bicycle_id = Column(Integer, primary_key=True)
+    listing_id = Column(Integer, nullable=False)
+    brand = Column(String(50))
+    model = Column(String(100))
+    type = Column(String(50))
+    frame_size = Column(String(20))
+    frame_material = Column(String(50))
+    wheel_size = Column(String(50))
+    brake_type = Column(String(50))
+    color = Column(String(50))
+    manufacture_year = Column(Integer)
+    groupset = Column(String(100))
+    condition_percent = Column(Integer)
+    mileage_km = Column(Integer)
+    serial_number = Column(String(100))
+    primary_image_url = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

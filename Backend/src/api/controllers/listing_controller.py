@@ -1,11 +1,42 @@
 from flask import Blueprint, request, jsonify, g
 from api.middleware.auth import require_auth, optional_auth
 from infrastructure.databases import SessionLocal
-from infrastructure.models.sell.models import Listing, ListingImage
+from infrastructure.models.sell.models import Listing, Media, Bicycle
 from decimal import Decimal
 import re
 
 listing_bp = Blueprint("listing", __name__)
+
+
+def serialize_listing(row, db):
+    return {
+        "listing_id": row.listing_id,
+        "title": row.title,
+        "description": row.description,
+        "price": str(row.price),
+        "status": row.status,
+        "seller_id": row.seller_id,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "images": [img.url for img in db.query(Media).filter(Media.listing_id == row.listing_id).all()],
+        "bike_details": {
+            **({
+                "brand": bike.brand,
+                "model": bike.model,
+                "type": bike.type,
+                "frame_size": bike.frame_size,
+                "frame_material": bike.frame_material,
+                "wheel_size": bike.wheel_size,
+                "brake_type": bike.brake_type,
+                "color": bike.color,
+                "manufacture_year": bike.manufacture_year,
+                "groupset": bike.groupset,
+                "condition_percent": bike.condition_percent,
+                "mileage_km": bike.mileage_km,
+                "serial_number": bike.serial_number,
+                "primary_image_url": bike.primary_image_url,
+            } if (bike := db.query(Bicycle).filter(Bicycle.listing_id == row.listing_id).first()) else {})
+        }
+    }
 
 
 @listing_bp.route("/listings", methods=["GET"])
@@ -15,20 +46,34 @@ def get_listings():
     db = SessionLocal()
     try:
         rows = db.query(Listing).order_by(Listing.created_at.desc()).limit(100).all()
-        result = [
-            {
-                "listing_id": r.listing_id,
-                "title": r.title,
-                "description": r.description,
-                "price": str(r.price),
-                "status": r.status,
-                "seller_id": r.seller_id,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-                "images": [img.url for img in db.query(ListingImage).filter(ListingImage.listing_id == r.listing_id).all()],
-            }
-            for r in rows
-        ]
+        result = [serialize_listing(r, db) for r in rows]
         return jsonify(result), 200
+    finally:
+        db.close()
+
+
+@listing_bp.route("/users/me/listings", methods=["GET"])
+@require_auth
+def get_my_listings():
+    """Return current user listings."""
+    seller = g.get('user')
+    user_id = None
+    if seller:
+        try:
+            user_id = int(seller.get('user_id'))
+        except (TypeError, ValueError):
+            user_id = None
+
+    if not seller or user_id is None:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Listing).filter(Listing.seller_id == user_id).order_by(Listing.created_at.desc()).all()
+        result = [serialize_listing(r, db) for r in rows]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
     finally:
         db.close()
 
@@ -44,23 +89,65 @@ def create_listing():
 
     title = data.get('title') or data.get('title', '')
     description = data.get('description', '')
-    price_raw = str(data.get('price', '0'))
+    price_raw = data.get('price', None)
+    images = data.get('images') or []
+    bike_data = data.get('bike_details') or data
+
+    required_bike_fields = [
+        'brand',
+        'model',
+        'type',
+        'frame_size',
+        'frame_material',
+        'wheel_size',
+        'brake_type',
+        'color',
+        'manufacture_year',
+        'condition_percent',
+        'mileage_km',
+    ]
+
+    missing_fields = []
+    if not title or str(title).strip() == '':
+        missing_fields.append('title')
+    if price_raw is None or str(price_raw).strip() == '':
+        missing_fields.append('price')
+    if not isinstance(images, list) or len(images) == 0:
+        missing_fields.append('images')
+
+    for field in required_bike_fields:
+        value = bike_data.get(field)
+        if value is None or str(value).strip() == '':
+            missing_fields.append(f'bike_details.{field}')
+
+    if missing_fields:
+        return jsonify({
+            'success': False,
+            'message': 'Missing required fields for listing upload',
+            'missing_fields': missing_fields
+        }), 400
 
     # Clean price string like "12,000,000" -> "12000000"
-    cleaned = re.sub(r"[^0-9.]+", "", price_raw)
+    cleaned = re.sub(r"[^0-9.]+", "", str(price_raw))
     if cleaned == "":
         cleaned = "0"
     try:
         price = Decimal(cleaned)
     except Exception:
-        price = Decimal('0')
+        return jsonify({
+            'success': False,
+            'message': 'Price must be a valid number'
+        }), 400
 
-    images = data.get('images') or []
+    try:
+        seller_id = int(seller.get('user_id'))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Authentication required"}), 401
 
     db = SessionLocal()
     try:
         listing = Listing(
-            seller_id=seller.get('user_id'),
+            seller_id=seller_id,
             title=title,
             description=description,
             price=price,
@@ -70,11 +157,35 @@ def create_listing():
         # flush to get a listing_id for FK relations
         db.flush()
 
+        bicycle = Bicycle(
+            listing_id=listing.listing_id,
+            brand=str(bike_data.get('brand', '')).strip() or None,
+            model=str(bike_data.get('model', '')).strip() or None,
+            type=str(bike_data.get('type', '')).strip() or None,
+            frame_size=str(bike_data.get('frame_size', '')).strip() or None,
+            frame_material=str(bike_data.get('frame_material', '')).strip() or None,
+            wheel_size=str(bike_data.get('wheel_size', '')).strip() or None,
+            brake_type=str(bike_data.get('brake_type', '')).strip() or None,
+            color=str(bike_data.get('color', '')).strip() or None,
+            manufacture_year=int(bike_data.get('manufacture_year')) if bike_data.get('manufacture_year') else None,
+            groupset=str(bike_data.get('groupset', '')).strip() or None,
+            condition_percent=int(bike_data.get('condition_percent')) if bike_data.get('condition_percent') else None,
+            mileage_km=int(bike_data.get('mileage_km')) if bike_data.get('mileage_km') else None,
+            serial_number=str(bike_data.get('serial_number', '')).strip() or None,
+            primary_image_url=str(images[0]).strip() if isinstance(images, list) and images else None,
+        )
+        db.add(bicycle)
+
         # Persist any provided image URLs
         if isinstance(images, list) and images:
             for img_url in images:
                 try:
-                    li = ListingImage(listing_id=listing.listing_id, url=str(img_url))
+                    li = Media(
+                        listing_id=listing.listing_id,
+                        url=str(img_url),
+                        media_type='IMAGE',
+                        is_primary=False
+                    )
                     db.add(li)
                 except Exception:
                     # skip invalid entries
@@ -84,7 +195,7 @@ def create_listing():
         db.refresh(listing)
 
         # return created object including images
-        image_urls = [img.url for img in db.query(ListingImage).filter(ListingImage.listing_id == listing.listing_id).all()]
+        image_urls = [img.url for img in db.query(Media).filter(Media.listing_id == listing.listing_id).all()]
 
         return jsonify({
             "listing_id": listing.listing_id,
@@ -96,6 +207,163 @@ def create_listing():
             "created_at": listing.created_at.isoformat() if listing.created_at else None,
             "images": image_urls,
         }), 201
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>', methods=['DELETE'])
+@require_auth
+def delete_listing(listing_id):
+    seller = g.get('user')
+    if not seller:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    try:
+        seller_id = int(seller.get('user_id'))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == seller_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found or unauthorized"}), 404
+
+        db.delete(listing)
+        db.commit()
+        return jsonify({"success": True, "message": "Listing deleted"}), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>', methods=['PUT'])
+@require_auth
+def update_listing(listing_id):
+    data = request.get_json() or {}
+    seller = g.get('user')
+    if not seller:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    try:
+        seller_id = int(seller.get('user_id'))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    title = data.get('title') or ''
+    description = data.get('description', '')
+    price_raw = data.get('price', None)
+    images = data.get('images') or []
+    bike_data = data.get('bike_details') or data
+
+    required_bike_fields = [
+        'brand',
+        'model',
+        'type',
+        'frame_size',
+        'frame_material',
+        'wheel_size',
+        'brake_type',
+        'color',
+        'manufacture_year',
+        'condition_percent',
+        'mileage_km',
+    ]
+
+    missing_fields = []
+    if not title or str(title).strip() == '':
+        missing_fields.append('title')
+    if price_raw is None or str(price_raw).strip() == '':
+        missing_fields.append('price')
+    if not isinstance(images, list) or len(images) == 0:
+        missing_fields.append('images')
+
+    for field in required_bike_fields:
+        value = bike_data.get(field)
+        if value is None or str(value).strip() == '':
+            missing_fields.append(f'bike_details.{field}')
+
+    if missing_fields:
+        return jsonify({
+            'success': False,
+            'message': 'Missing required fields for listing update',
+            'missing_fields': missing_fields
+        }), 400
+
+    cleaned = re.sub(r"[^0-9.]+", "", str(price_raw))
+    if cleaned == "":
+        cleaned = "0"
+    try:
+        price = Decimal(cleaned)
+    except Exception:
+        return jsonify({
+            'success': False,
+            'message': 'Price must be a valid number'
+        }), 400
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == seller_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found or unauthorized"}), 404
+
+        listing.title = title
+        listing.description = description
+        listing.price = price
+        listing.status = data.get('status', listing.status)
+
+        bicycle = db.query(Bicycle).filter(Bicycle.listing_id == listing_id).first()
+        if not bicycle:
+            bicycle = Bicycle(listing_id=listing_id)
+            db.add(bicycle)
+
+        bicycle.brand = str(bike_data.get('brand', '')).strip() or None
+        bicycle.model = str(bike_data.get('model', '')).strip() or None
+        bicycle.type = str(bike_data.get('type', '')).strip() or None
+        bicycle.frame_size = str(bike_data.get('frame_size', '')).strip() or None
+        bicycle.frame_material = str(bike_data.get('frame_material', '')).strip() or None
+        bicycle.wheel_size = str(bike_data.get('wheel_size', '')).strip() or None
+        bicycle.brake_type = str(bike_data.get('brake_type', '')).strip() or None
+        bicycle.color = str(bike_data.get('color', '')).strip() or None
+        bicycle.manufacture_year = int(bike_data.get('manufacture_year')) if bike_data.get('manufacture_year') else None
+        bicycle.groupset = str(bike_data.get('groupset', '')).strip() or None
+        bicycle.condition_percent = int(bike_data.get('condition_percent')) if bike_data.get('condition_percent') else None
+        bicycle.mileage_km = int(bike_data.get('mileage_km')) if bike_data.get('mileage_km') else None
+        bicycle.serial_number = str(bike_data.get('serial_number', '')).strip() or None
+        bicycle.primary_image_url = str(images[0]).strip() if isinstance(images, list) and images else None
+
+        db.query(Media).filter(Media.listing_id == listing_id).delete(synchronize_session=False)
+        if isinstance(images, list) and images:
+            for img_url in images:
+                try:
+                    db.add(Media(
+                        listing_id=listing_id,
+                        url=str(img_url),
+                        media_type='IMAGE',
+                        is_primary=False
+                    ))
+                except Exception:
+                    continue
+
+        db.commit()
+        db.refresh(listing)
+        image_urls = [img.url for img in db.query(Media).filter(Media.listing_id == listing_id).all()]
+
+        return jsonify({
+            "listing_id": listing.listing_id,
+            "title": listing.title,
+            "description": listing.description,
+            "price": str(listing.price),
+            "status": listing.status,
+            "seller_id": listing.seller_id,
+            "created_at": listing.created_at.isoformat() if listing.created_at else None,
+            "images": image_urls,
+        }), 200
     except Exception as e:
         db.rollback()
         return jsonify({"success": False, "message": str(e)}), 500

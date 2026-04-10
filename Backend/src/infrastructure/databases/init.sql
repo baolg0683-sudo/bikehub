@@ -43,18 +43,30 @@ CREATE TABLE listings.bicycles (
     bicycle_id SERIAL PRIMARY KEY,
     listing_id INT REFERENCES listings.listings(listing_id) ON DELETE CASCADE,
     brand VARCHAR(50),
+    model VARCHAR(100),
     type VARCHAR(50), -- Road, MTB, Touring...
     frame_size VARCHAR(20),
+    frame_material VARCHAR(50),
+    wheel_size VARCHAR(50),
+    brake_type VARCHAR(50),
+    color VARCHAR(50),
+    manufacture_year INT,
     groupset VARCHAR(100),
     condition_percent INT CHECK (condition_percent BETWEEN 0 AND 100),
-    serial_number VARCHAR(100)
+    mileage_km INT,
+    serial_number VARCHAR(100),
+    primary_image_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 CREATE TABLE listings.media (
     media_id SERIAL PRIMARY KEY,
     listing_id INT REFERENCES listings.listings(listing_id) ON DELETE CASCADE,
     url TEXT NOT NULL,
-    media_type VARCHAR(10) -- 'IMAGE', 'VIDEO'
+    media_type VARCHAR(10) DEFAULT 'IMAGE', -- 'IMAGE', 'VIDEO'
+    is_primary BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -----------------------------------------------------------

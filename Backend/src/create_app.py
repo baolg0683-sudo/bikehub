@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
+from sqlalchemy import text
 from config import Config
 from config_jwt import JWTConfig
 from api.middleware import setup_middleware
@@ -27,17 +28,29 @@ def create_app():
     
     # Import models to register them with db and Base metadata
     with app.app_context():
-        # Flask-SQLAlchemy models
-        from infrastructure.models.auth.user_model import UserModel
-        db.create_all()
-
         # Declarative Base models (SQLAlchemy Core models)
         from infrastructure.databases import Base
         # Import module(s) that define Base-based models so they are registered
         try:
-            from infrastructure.models.sell.models import Listing  # ensure Listing is imported
+            from infrastructure.models.sell.models import Listing, Media, Bicycle  # ensure all sell models are imported
         except Exception:
             Listing = None
+            Media = None
+            Bicycle = None
+
+        # Ensure required schemas exist for PostgreSQL databases.
+        try:
+            dialect_name = getattr(db.engine, 'dialect', None) and db.engine.dialect.name
+            if dialect_name in ('postgresql', 'postgres'):
+                with db.engine.begin() as connection:
+                    connection.execute(text('CREATE SCHEMA IF NOT EXISTS auth'))
+                    connection.execute(text('CREATE SCHEMA IF NOT EXISTS listings'))
+        except Exception as e:
+            print(f"[create_app] warning: could not ensure required schemas exist: {e}")
+
+        # Flask-SQLAlchemy models
+        from infrastructure.models.auth.user_model import UserModel
+        db.create_all()
 
         # Create tables for Base metadata (e.g., listings schema)
         # SQLite does not support named schemas (Postgres-style). When running

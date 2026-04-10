@@ -10,12 +10,14 @@ export interface UserData {
 
 interface AuthContextValue {
   loggedIn: boolean;
+  accessToken: string | null;
   user: UserData | null;
   login: (payload: {
     access_token: string;
     refresh_token: string;
     user: UserData;
   }) => void;
+  updateUser: (user: UserData) => void;
   logout: () => void;
 }
 
@@ -24,6 +26,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
     // Only run on client side
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token && token.trim()) {
       console.log('[AuthProvider] Found token, setting loggedIn=true');
       setLoggedIn(true);
+      setAccessToken(token);
       if (userData) {
         try {
           const parsed = JSON.parse(userData);
@@ -50,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       console.log('[AuthProvider] No token, setting loggedIn=false');
       setLoggedIn(false);
+      setAccessToken(null);
       setUser(null);
     }
   }, []);
@@ -65,6 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('user_data', JSON.stringify(user));
     console.log('[AuthProvider] Tokens stored, setting loggedIn=true');
     setLoggedIn(true);
+    setAccessToken(access_token);
+    setUser(user);
+  }, []);
+
+  const updateUser = useCallback((user: UserData) => {
+    console.log('[AuthProvider] updateUser called with', user);
+    localStorage.setItem('user_data', JSON.stringify(user));
     setUser(user);
   }, []);
 
@@ -75,12 +87,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('user_data');
     console.log('[AuthProvider] Tokens cleared, setting loggedIn=false');
     setLoggedIn(false);
+    setAccessToken(null);
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ loggedIn, user, login, logout }),
-    [loggedIn, user, login, logout]
+    () => ({ loggedIn, accessToken, user, login, updateUser, logout }),
+    [loggedIn, accessToken, user, login, updateUser, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

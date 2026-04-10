@@ -13,6 +13,8 @@ from api.middleware.auth import require_auth, require_admin
 from api.utils.jwt_utils import TokenManager, get_current_user
 from infrastructure.databases import db
 from infrastructure.models.auth.user_model import UserModel
+from infrastructure.models.interactions.review_model import ReviewModel
+from infrastructure.models.orders.models import Order
 import bcrypt
 
 # Create auth blueprint
@@ -460,6 +462,8 @@ def update_profile():
                 "message": "User not found"
             }), 404
 
+        if 'avatar_url' in data:
+            user.avatar_url = str(data.get('avatar_url', user.avatar_url or '')).strip()  # type: ignore[assignment]
         if 'full_name' in data:
             full_name = str(data.get('full_name', user.full_name or '')).strip()
             if full_name and len(full_name) < 2:
@@ -469,6 +473,18 @@ def update_profile():
                     "message": "Họ tên không hợp lệ"
                 }), 400
             user.full_name = full_name  # type: ignore[assignment]
+        if 'date_of_birth' in data and data.get('date_of_birth') is not None:
+            if data.get('date_of_birth') == '':
+                user.date_of_birth = None  # type: ignore[assignment]
+            else:
+                try:
+                    user.date_of_birth = datetime.strptime(str(data.get('date_of_birth')), '%Y-%m-%d').date()  # type: ignore[assignment]
+                except ValueError:
+                    return jsonify({
+                        "success": False,
+                        "error": "Validation error",
+                        "message": "Ngày sinh không hợp lệ (định dạng YYYY-MM-DD)"
+                    }), 400
         if 'certificate_id' in data:
             user.certificate_id = str(data.get('certificate_id', user.certificate_id or '')).strip()  # type: ignore[assignment]
         if 'email' in data:
@@ -507,6 +523,19 @@ def update_profile():
                     }), 409
             user.phone = cleaned_phone  # type: ignore[assignment]
         if 'password' in data and data.get('password'):
+            current_password = str(data.get('current_password', '')).strip()
+            if not current_password:
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Cần nhập mật khẩu cũ để thay đổi mật khẩu"
+                }), 400
+            if not bcrypt.checkpw(current_password.encode('utf-8'), user.password_hash.encode('utf-8')):
+                return jsonify({
+                    "success": False,
+                    "error": "Unauthorized",
+                    "message": "Mật khẩu cũ không đúng"
+                }), 401
             if len(data.get('password')) < 6:
                 return jsonify({
                     "success": False,
@@ -521,15 +550,23 @@ def update_profile():
 
         db.session.commit()
 
+        age = None
+        if user.date_of_birth:
+            today = datetime.now().date()
+            age = today.year - user.date_of_birth.year - ((today.month, today.day) < (user.date_of_birth.month, user.date_of_birth.day))
+
         return jsonify({
             "success": True,
             "message": "Profile updated successfully",
             "data": {
                 "user_id": user.user_id,
-                "username": user.username,
+                "email": user.email,
                 "role": user.role,
                 "full_name": user.full_name or "",
                 "phone": user.phone or "",
+                "avatar_url": user.avatar_url or "",
+                "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+                "age": age,
                 "reputation_score": user.reputation_score,
                 "certificate_id": user.certificate_id or ""
             }
@@ -580,15 +617,22 @@ def get_current_user_info():
                 "message": "User not found"
             }), 404
         
+        age = None
+        if user.date_of_birth:
+            today = datetime.now().date()
+            age = today.year - user.date_of_birth.year - ((today.month, today.day) < (user.date_of_birth.month, user.date_of_birth.day))
+
         return jsonify({
             "success": True,
             "data": {
                 "user_id": user.user_id,
-                "username": user.username,
                 "email": user.email,
                 "role": user.role,
                 "full_name": user.full_name or "",
                 "phone": user.phone or "",
+                "avatar_url": user.avatar_url or "",
+                "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+                "age": age,
                 "reputation_score": user.reputation_score,
                 "certificate_id": user.certificate_id or ""
             }
@@ -599,6 +643,85 @@ def get_current_user_info():
             "success": False,
             "error": "Server error",
             "message": str(e)
+        }), 500
+
+
+@auth_endpoints_bp.route('/me/reviews', methods=['GET'])
+@require_auth
+def get_my_reviews():
+    try:
+        user_id = g.user.get('user_id')
+
+        received_rows = (
+            db.session.query(
+                ReviewModel,
+                UserModel.full_name.label('reviewer_name'),
+                UserModel.avatar_url.label('reviewer_avatar'),
+                Order.status.label('order_status'),
+                Order.final_price.label('order_price')
+            )
+            .join(UserModel, UserModel.user_id == ReviewModel.reviewer_id)
+            .join(Order, Order.order_id == ReviewModel.order_id)
+            .filter(ReviewModel.target_id == user_id)
+            .all()
+        )
+
+        received_reviews = [
+            {
+                'review_id': row.ReviewModel.review_id,
+                'order_id': row.ReviewModel.order_id,
+                'rating': row.ReviewModel.rating,
+                'comment': row.ReviewModel.comment,
+                'reviewer_name': row.reviewer_name,
+                'reviewer_avatar': row.reviewer_avatar,
+                'order_status': row.order_status,
+                'order_price': str(row.order_price) if row.order_price is not None else None,
+                'created_at': row.ReviewModel.created_at.isoformat() if row.ReviewModel.created_at else None
+            }
+            for row in received_rows
+        ]
+
+        given_rows = (
+            db.session.query(
+                ReviewModel,
+                UserModel.full_name.label('target_name'),
+                UserModel.avatar_url.label('target_avatar'),
+                Order.status.label('order_status'),
+                Order.final_price.label('order_price')
+            )
+            .join(UserModel, UserModel.user_id == ReviewModel.target_id)
+            .join(Order, Order.order_id == ReviewModel.order_id)
+            .filter(ReviewModel.reviewer_id == user_id)
+            .all()
+        )
+
+        given_reviews = [
+            {
+                'review_id': row.ReviewModel.review_id,
+                'order_id': row.ReviewModel.order_id,
+                'rating': row.ReviewModel.rating,
+                'comment': row.ReviewModel.comment,
+                'target_name': row.target_name,
+                'target_avatar': row.target_avatar,
+                'order_status': row.order_status,
+                'order_price': str(row.order_price) if row.order_price is not None else None,
+                'created_at': row.ReviewModel.created_at.isoformat() if row.ReviewModel.created_at else None
+            }
+            for row in given_rows
+        ]
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'received_reviews': received_reviews,
+                'given_reviews': given_reviews
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Server error',
+            'message': str(e)
         }), 500
 
 

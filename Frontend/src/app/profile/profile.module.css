@@ -1,34 +1,344 @@
 .profilePage {
   padding: 2rem;
-  max-width: 920px;
+  max-width: 1080px;
   margin: 0 auto;
+}
+
+.headerRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
 }
 
 .profileTitle {
   font-size: 2rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #111827;
 }
 
 .profileIntro {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #4b5563;
+  max-width: 80ch;
 }
 
-.tokenSection,
+.loginPrompt {
+  padding: 1.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  background: #f8fafc;
+}
+
+.linkButton {
+  display: inline-flex;
+  margin-top: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  color: white;
+  background: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.profileBody {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.profilePanel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  min-height: fit-content;
+}
+
+.profilePanelTop {
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+}
+
+.avatarWrapper {
+  width: 104px;
+  height: 104px;
+  margin: 0 auto;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #e2e8f0;
+}
+
+.profileAvatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileAvatarPlaceholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 2rem;
+  color: #334155;
+}
+
+.profileName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.profileSubtitle {
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.profileSummaryCard {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.summaryLabel {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.profileContent {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.infoContainer {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.contentCard,
+.editCard {
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.sectionDescription {
+  margin-top: 0.35rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.infoRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  align-items: center;
+}
+
 .profileForm {
   display: grid;
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
-.tokenBox {
-  width: 100%;
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.inlineInput {
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  width: min(100%, 230px);
+  font-family: inherit;
+}
+
+.inlineButton {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.inlineButton:hover {
+  background: #1d4ed8;
+}
+
+.inlineCancelButton {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.inlineCancelButton:hover {
+  background: #f8fafc;
+}
+
+.inlineError {
+  grid-column: 1 / -1;
+  color: #b91c1c;
+  font-size: 0.95rem;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.avatarEditRow {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.avatarUploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.buttonPrimary,
+.buttonSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.25rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.avatarInput {
+  display: none;
+}
+
+.fieldInputDisabled {
   padding: 0.85rem;
   border-radius: 0.75rem;
   border: 1px solid #d1d5db;
-  min-height: 100px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+@media (max-width: 960px) {
+  .profileBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fieldInlineGroup {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.fieldLabel {
+  font-weight: 600;
+  color: #111827;
+}
+
+.fieldInput {
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
   font-family: inherit;
+}
+
+.passwordToggleButton {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  border: 1px solid #2563eb;
+  background: white;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.passwordToggleButton:hover {
+  background: #eef2ff;
+}
+
+.fieldInputDisabled {
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.avatarPreviewWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+}
+
+.avatarPreview {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid #2563eb;
+}
+
+.fieldHint {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.readOnlyRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.readOnlyLabel {
+  font-weight: 600;
 }
 
 .buttonPrimary,
@@ -53,31 +363,6 @@
   color: white;
 }
 
-.fieldGroup {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.fieldLabel {
-  font-weight: 600;
-  color: #111827;
-}
-
-.fieldInput {
-  padding: 0.85rem;
-  border-radius: 0.75rem;
-  border: 1px solid #d1d5db;
-  font-family: inherit;
-}
-
-.fieldInputDisabled {
-  padding: 0.85rem;
-  border-radius: 0.75rem;
-  border: 1px solid #d1d5db;
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
 .feedbackMessage {
   margin-top: 1rem;
   font-weight: 600;
@@ -89,4 +374,43 @@
 
 .feedbackError {
   color: #b91c1c;
+}
+
+.reviewSection {
+  display: grid;
+  gap: 1rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.reviewCard {
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.reviewRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.95rem;
+  color: #334155;
+}
+
+.reviewLabel {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.emptyState {
+  color: #475569;
+  font-size: 0.95rem;
 }

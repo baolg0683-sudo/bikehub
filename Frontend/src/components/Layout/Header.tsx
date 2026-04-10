@@ -100,7 +100,7 @@ const Header: React.FC = () => {
                     <FiUser className={styles.dropdownIcon} />
                     <span>Thông tin cá nhân</span>
                   </Link>
-                  <Link href="/listings" className={styles.dropdownItem}>
+                  <Link href="/manage" className={styles.dropdownItem}>
                     <FiFileText className={styles.dropdownIcon} />
                     <span>Quản lý tin đăng</span>
                   </Link>

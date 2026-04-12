@@ -40,6 +40,7 @@ export default function ManageListingsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [promotionLoading, setPromotionLoading] = useState<number | null>(null);
 
   const parseResponse = async (response: Response) => {
     const text = await response.text();
@@ -118,6 +119,36 @@ export default function ManageListingsPage() {
     }
   };
 
+  const handleRequestPromotion = async (listingId: number) => {
+    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null) ?? "";
+    if (!token) {
+      setError("Vui lòng đăng nhập để gửi yêu cầu đẩy tin.");
+      return;
+    }
+
+    setError("");
+    setPromotionLoading(listingId);
+
+    try {
+      const response = await fetch(`/api/listings/${listingId}/request-promotion`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const result = await parseResponse(response);
+      if (!response.ok) {
+        throw new Error(result.message || "Không thể gửi yêu cầu đẩy tin");
+      }
+      handleReload();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setPromotionLoading(null);
+    }
+  };
+
   if (!auth.loggedIn) {
     return (
       <section className={styles.page}>
@@ -182,6 +213,20 @@ export default function ManageListingsPage() {
                   <Link href={`/post?listingId=${listing.listing_id}`} className={styles.editButton}>
                     Chỉnh sửa
                   </Link>
+                  {listing.status === "PENDING_PROMOTION" ? (
+                    <span className={styles.promotionStatus}>
+                      Đang chờ duyệt đẩy tin
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={() => handleRequestPromotion(listing.listing_id)}
+                      disabled={promotionLoading === listing.listing_id}
+                    >
+                      {promotionLoading === listing.listing_id ? "Đang gửi..." : "Đẩy tin"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={styles.deleteButton}

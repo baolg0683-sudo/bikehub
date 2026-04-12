@@ -16,7 +16,7 @@ def serialize_listing(row, db):
         "description": row.description,
         "price": str(row.price),
         "status": row.status,
-        "is_promoted": bool(row.is_verified),
+        "is_verified": bool(row.is_verified),
         "seller_id": row.seller_id,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "images": [img.url for img in db.query(Media).filter(Media.listing_id == row.listing_id).all()],
@@ -450,6 +450,59 @@ def update_listing(listing_id):
             "created_at": listing.created_at.isoformat() if listing.created_at else None,
             "images": image_urls,
         }), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route("/listings/pending-inspection", methods=["GET"])
+@require_auth
+def get_pending_listings():
+    """Return all pending listings for inspector."""
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Listing).filter(Listing.status == 'PENDING', Listing.is_verified == False).order_by(Listing.created_at.desc()).all()
+        result = [serialize_listing(r, db) for r in rows]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route("/listings/<int:listing_id>/inspect", methods=["POST"])
+@require_auth
+def inspect_listing(listing_id):
+    """Approve or reject a listing."""
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    data = request.get_json() or {}
+    action = data.get('action') # 'APPROVE' or 'REJECT'
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found"}), 404
+
+        if action == 'APPROVE':
+            listing.is_verified = True
+            listing.status = 'AVAILABLE'
+        elif action == 'REJECT':
+            db.delete(listing)
+        else:
+            return jsonify({"success": False, "message": "Invalid action"}), 400
+
+        db.commit()
+        return jsonify({"success": True, "message": f"Listing {action}D"}), 200
     except Exception as e:
         db.rollback()
         return jsonify({"success": False, "message": str(e)}), 500

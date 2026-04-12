@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiUser, FiFileText, FiDollarSign, FiLogOut } from "react-icons/fi";
+import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./Header.module.css";
 
@@ -104,6 +104,12 @@ const Header: React.FC = () => {
                     <FiFileText className={styles.dropdownIcon} />
                     <span>Quản lý tin đăng</span>
                   </Link>
+                  {user?.role === 'INSPECTOR' && (
+                    <Link href="/inspector" className={styles.dropdownItem}>
+                      <FiCheckSquare className={styles.dropdownIcon} />
+                      <span>Khu vực Kiểm định</span>
+                    </Link>
+                  )}
                   <div className={styles.dropdownDivider}></div>
                   <div className={styles.walletInfo}>
                     <FiDollarSign className={styles.walletIcon} />

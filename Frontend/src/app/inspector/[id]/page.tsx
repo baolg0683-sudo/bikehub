@@ -55,7 +55,7 @@ export default function InspectorDetail() {
     const fetchListing = async () => {
       try {
         // We might not have a specific ID fetch for inspector, let's reuse the public one or filter
-        const response = await fetch(`http://localhost:5000/api/listings`);
+        const response = await fetch(`/api/listings`);
         const data = await response.json();
         const found = data.find((l: any) => l.listing_id === Number(id));
         if (found) {
@@ -87,7 +87,7 @@ export default function InspectorDetail() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`http://localhost:5000/api/listings/${id}/inspect`, {
+      const response = await fetch(`/api/listings/${id}/inspect`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -116,7 +116,7 @@ export default function InspectorDetail() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`http://localhost:5000/api/listings/${id}/inspect`, {
+      const response = await fetch(`/api/listings/${id}/inspect`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

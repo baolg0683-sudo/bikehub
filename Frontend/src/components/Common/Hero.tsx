@@ -1,26 +1,51 @@
-import React from "react";
+﻿"use client";
+
+import React, { FormEvent } from "react";
 import styles from "./Hero.module.css";
 
-interface HeroProps {}
+interface HeroProps {
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
+  onSearch: () => void;
+  onToggleFilters: () => void;
+  filtersOpen: boolean;
+}
 
-const Hero: React.FC<HeroProps> = () => {
+const Hero: React.FC<HeroProps> = ({
+  searchTerm,
+  onSearchTermChange,
+  onSearch,
+  onToggleFilters,
+  filtersOpen,
+}) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSearch();
+  };
+
   return (
     <section className={styles.hero}>
       <div className={styles.heroOverlay}></div>
       <div className={styles.heroContainer}>
         <h2 className={styles.heroTitle}>Old but gold - High cadence riding.</h2>
         <p className={styles.heroSubtitle}>Khám phá bộ sưu tập xe đạp đã qua sử dụng chất lượng cao với giá tốt nhất!</p>
-        <div className={styles.heroSearch}>
-          <input type="search" placeholder="Tìm kiếm xe đạp theo hãng, model..." className={styles.searchInput} />
-          <select className={styles.searchSelect} title="Chọn loại xe đạp">
-            <option>Tất cả loại xe</option>
-            <option>Xe đạp địa hình</option>
-            <option>Xe đạp đường phố</option>
-            <option>Xe đạp thể thao</option>
-            <option>Xe đạp trợ lực (E-bike)</option>
-          </select>
-          <button className={styles.searchBtn}>Tìm kiếm</button>
-        </div>
+        <form className={styles.heroSearch} onSubmit={handleSubmit}>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => onSearchTermChange(event.target.value)}
+            placeholder="Tìm kiếm xe đạp theo hãng, model..."
+            className={styles.searchInput}
+          />
+          <div className={styles.heroActions}>
+            <button type="submit" className={styles.searchBtn}>
+              Tìm kiếm
+            </button>
+            <button type="button" className={styles.filterBtn} onClick={onToggleFilters}>
+              {filtersOpen ? "Đóng lọc" : "Lọc"}
+            </button>
+          </div>
+        </form>
         <div className={styles.heroFeatures}>
           <span className={styles.featureItem}>
             <span className={styles.featureCheck}>✓</span> Trao đổi mua bán trực tiếp

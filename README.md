@@ -173,3 +173,4 @@ For detailed auth documentation, see [Backend/JWT_AUTH_GUIDE.md](Backend/JWT_AUT
 - Frontend automatically proxies API calls to backend
 - Database configuration in `Backend/src/config.py`
 - Environment variables in `.env` files
+python .\seed_listings.py --count ?? (script post bike)

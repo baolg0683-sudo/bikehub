@@ -38,7 +38,7 @@ export default function InspectorDashboard() {
 
     const fetchPendingListings = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/listings/pending-inspection', {
+        const response = await fetch('/api/listings/pending-inspection', {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'

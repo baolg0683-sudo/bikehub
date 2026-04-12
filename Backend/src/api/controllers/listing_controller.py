@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, g
 from api.middleware.auth import require_auth, optional_auth
 from infrastructure.databases import SessionLocal
 from infrastructure.models.sell.models import Listing, Media, Bicycle
+from sqlalchemy import or_
 from decimal import Decimal
 import re
 
@@ -15,6 +16,7 @@ def serialize_listing(row, db):
         "description": row.description,
         "price": str(row.price),
         "status": row.status,
+        "is_promoted": bool(row.is_verified),
         "seller_id": row.seller_id,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "images": [img.url for img in db.query(Media).filter(Media.listing_id == row.listing_id).all()],
@@ -43,9 +45,52 @@ def serialize_listing(row, db):
 @optional_auth
 def get_listings():
     """Return listings from the database (public)."""
+    search_query = request.args.get('q', '').strip()
+    brand_filter = request.args.get('brand', '').strip()
+    material_filter = request.args.get('frame_material', '').strip()
+    type_filter = request.args.get('type', '').strip()
+    status_filter = request.args.get('status', 'AVAILABLE').strip()
+    min_condition = request.args.get('min_condition', '').strip()
+
     db = SessionLocal()
     try:
-        rows = db.query(Listing).order_by(Listing.created_at.desc()).limit(100).all()
+        query = db.query(Listing)
+        needs_join = any([search_query, brand_filter, material_filter, type_filter, min_condition])
+
+        if needs_join:
+            query = query.outerjoin(Bicycle, Bicycle.listing_id == Listing.listing_id)
+
+        if status_filter and status_filter.lower() != 'all':
+            query = query.filter(Listing.status == status_filter)
+
+        if search_query:
+            like_pattern = f"%{search_query}%"
+            query = query.filter(
+                or_(
+                    Listing.title.ilike(like_pattern),
+                    Listing.description.ilike(like_pattern),
+                    Bicycle.brand.ilike(like_pattern),
+                    Bicycle.model.ilike(like_pattern),
+                )
+            )
+
+        if brand_filter:
+            query = query.filter(Bicycle.brand.ilike(f"%{brand_filter}%"))
+
+        if material_filter:
+            query = query.filter(Bicycle.frame_material.ilike(f"%{material_filter}%"))
+
+        if type_filter:
+            query = query.filter(Bicycle.type.ilike(f"%{type_filter}%"))
+
+        if min_condition:
+            try:
+                min_condition_value = int(min_condition)
+                query = query.filter(Bicycle.condition_percent >= min_condition_value)
+            except ValueError:
+                pass
+
+        rows = query.order_by(Listing.created_at.desc()).limit(100).all()
         result = [serialize_listing(r, db) for r in rows]
         return jsonify(result), 200
     finally:
@@ -207,6 +252,47 @@ def create_listing():
             "created_at": listing.created_at.isoformat() if listing.created_at else None,
             "images": image_urls,
         }), 201
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>/request-promotion', methods=['POST'])
+@require_auth
+def request_promotion(listing_id):
+    seller = g.get('user')
+    if not seller:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    try:
+        seller_id = int(seller.get('user_id'))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == seller_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found or unauthorized"}), 404
+
+        if listing.status == 'PENDING_PROMOTION':
+            return jsonify({
+                "success": False,
+                "message": "Yêu cầu đẩy tin đã được gửi và đang chờ duyệt"
+            }), 400
+
+        if listing.status == 'SOLD':
+            return jsonify({"success": False, "message": "Không thể đẩy tin cho tin đã bán"}), 400
+
+        listing.status = 'PENDING_PROMOTION'
+        db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Yêu cầu đẩy tin đã được gửi. Vui lòng chờ admin duyệt."
+        }), 200
     except Exception as e:
         db.rollback()
         return jsonify({"success": False, "message": str(e)}), 500

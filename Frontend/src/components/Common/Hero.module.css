@@ -51,24 +51,27 @@
 
 .heroSearch {
   display: flex;
-  gap: 0;
-  max-width: 600px;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 760px;
   margin: 0 auto 2rem;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.15);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.heroActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .searchInput {
-  flex: 1;
+  flex: 1 1 320px;
   min-width: 0;
   padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
   border: none;
   outline: none;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.15);
   color: #fff;
   font-size: 1rem;
 }
@@ -77,14 +80,30 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
-.searchSelect {
-  padding: 0.75rem 1rem;
+.searchBtn,
+.filterBtn {
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.25rem;
   border: none;
-  outline: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border-left: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.searchBtn {
+  background-color: #fff;
+  color: #d4443f;
+}
+
+.searchBtn:hover,
+.filterBtn:hover {
+  transform: translateY(-1px);
+}
+
+.filterBtn {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .searchBtn {

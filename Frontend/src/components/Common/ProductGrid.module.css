@@ -131,6 +131,198 @@
   text-align: center;
 }
 
+.filterPanel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  align-items: flex-end;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.filterGroup label {
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.filterGroup select {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #1a202c;
+  font-size: 0.95rem;
+}
+
+.filterActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filterButton {
+  background-color: #d4443f;
+  color: white;
+  padding: 0.85rem 1.2rem;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.filterButton:hover {
+  background-color: #c11e27;
+}
+
+.featuredSection {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionHeader h3 {
+  font-size: 1.75rem;
+  margin: 0;
+}
+
+.sectionHeader p {
+  margin: 0;
+  color: #64748b;
+}
+
+.featuredCarouselWrapper {
+  position: relative;
+}
+
+.featuredCarousel {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.75rem 0.5rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.featuredCarousel::-webkit-scrollbar {
+  height: 8px;
+}
+
+.featuredCarousel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.featuredCarousel::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.carouselControl {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.carouselControl:hover {
+  transform: translateY(-50%) scale(1.05);
+  background: white;
+}
+
+.carouselPrev {
+  left: 0.5rem;
+}
+
+.carouselNext {
+  right: 0.5rem;
+}
+
+.featuredCard {
+  min-width: 300px;
+  flex: 0 0 300px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  scroll-snap-align: start;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.featuredCard:hover,
+.featuredCardActive {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+}
+
+.featuredImage {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  background: #f8fafc;
+}
+
+.featuredInfo {
+  padding: 1rem;
+}
+
+.featuredInfo h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: #1a202c;
+}
+
+.featuredInfo p {
+  margin: 0.25rem 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.productsLoading,
+.productsEmpty,
+.productsError {
+  text-align: center;
+  font-size: 1rem;
+  color: #475569;
+  padding: 2rem 0;
+}
+
+.productsError {
+  color: #c53030;
+}
+
+.clearButton {
+  background-color: #f8fafc;
+  color: #1a202c;
+  border: 1px solid #cbd5e1;
+}
+
 .productsViewAll {
   background-color: #d4443f;
   color: white;

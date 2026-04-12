@@ -147,7 +147,8 @@
 }
 
 .editButton,
-.deleteButton {
+.deleteButton,
+.promotionButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -164,9 +165,26 @@
   color: #111827;
 }
 
+.promotionButton,
+.primaryButton {
+  background: #2563eb;
+  color: white;
+}
+
 .deleteButton {
   background: #ef4444;
   color: white;
+}
+
+.promotionStatus {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  color: #2563eb;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.85rem;
+  font-weight: 700;
 }
 
 .deleteButton:disabled {

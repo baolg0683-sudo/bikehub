@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { FiCheckCircle } from "react-icons/fi";
 import styles from "./ProductGrid.module.css";
 
 interface ProductCardProps {
@@ -9,6 +10,7 @@ interface ProductCardProps {
   condition: string;
   price: string;
   isPromoted?: boolean;
+  isVerified?: boolean;
 }
 
 interface ListingData {
@@ -18,6 +20,7 @@ interface ListingData {
   status: string;
   created_at?: string | null;
   is_promoted?: boolean;
+  is_verified?: boolean;
   images?: string[];
   bike_details?: {
     condition_percent?: number;
@@ -56,7 +59,7 @@ const formatPrice = (value: string) => {
   return number.toLocaleString("vi-VN") + " đ";
 };
 
-const ProductCard: React.FC<ProductCardProps> = ({ image, title, condition, price, isPromoted }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ image, title, condition, price, isPromoted, isVerified }) => {
   return (
     <article className={styles.productCard}>
       <div className={styles.productImageContainer}>
@@ -64,7 +67,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ image, title, condition, pric
         <div className={styles.productBadge}>{isPromoted ? "Đã trả phí" : "Hot"}</div>
       </div>
       <div className={styles.productContent}>
-        <h4 className={styles.productTitle}>{title}</h4>
+        <h4 className={styles.productTitle}>
+          {title} 
+          {isVerified && <FiCheckCircle style={{ color: '#1d9bf0', marginLeft: '6px', fontSize: '1.1rem', verticalAlign: 'text-bottom' }} title="Xe đã qua kiểm định chất lượng" />}
+        </h4>
         <p className={styles.productCondition}>
           Tình trạng: <span className={styles.conditionText}>{condition}</span>
         </p>
@@ -359,6 +365,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
                 condition={getConditionLabel(product)}
                 price={formatPrice(product.price)}
                 isPromoted={product.is_promoted}
+                isVerified={product.is_verified}
               />
             ))}
           </div>

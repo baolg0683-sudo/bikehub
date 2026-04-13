@@ -1,9 +1,11 @@
 ﻿"use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import styles from "./ProductGrid.module.css";
 
 interface ProductCardProps {
+  listing_id: number;
   image: string;
   title: string;
   condition: string;
@@ -56,24 +58,25 @@ const formatPrice = (value: string) => {
   return number.toLocaleString("vi-VN") + " đ";
 };
 
-const ProductCard: React.FC<ProductCardProps> = ({ image, title, condition, price, isPromoted }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, condition, price, isPromoted }) => {
   return (
-    <article className={styles.productCard}>
-      <div className={styles.productImageContainer}>
-        <img src={image} alt={title} className={styles.productImage} />
-        <div className={styles.productBadge}>{isPromoted ? "Đã trả phí" : "Hot"}</div>
-      </div>
-      <div className={styles.productContent}>
-        <h4 className={styles.productTitle}>{title}</h4>
-        <p className={styles.productCondition}>
-          Tình trạng: <span className={styles.conditionText}>{condition}</span>
-        </p>
-        <div className={styles.productFooter}>
-          <p className={styles.productPrice}>{price}</p>
-          <button className={styles.productBtn}>Xem chi tiết</button>
+    <Link href={`/listing/${listing_id}`} className={styles.productLink}>
+      <article className={styles.productCard}>
+        <div className={styles.productImageContainer}>
+          <img src={image} alt={title} className={styles.productImage} />
+          <div className={styles.productBadge}>{isPromoted ? "Đã trả phí" : "Hot"}</div>
         </div>
-      </div>
-    </article>
+        <div className={styles.productContent}>
+          <h4 className={styles.productTitle}>{title}</h4>
+          <p className={styles.productCondition}>
+            Tình trạng: <span className={styles.conditionText}>{condition}</span>
+          </p>
+          <div className={styles.productFooter}>
+            <p className={styles.productPrice}>{price}</p>
+          </div>
+        </div>
+      </article>
+    </Link>
   );
 };
 
@@ -161,15 +164,42 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
     setActiveFeaturedIndex(0);
   }, [featuredListings.length]);
 
+  const [isCarouselHovering, setIsCarouselHovering] = useState(false);
+
   useEffect(() => {
     if (!featuredRef.current || featuredListings.length === 0) {
       return;
     }
-    const activeCard = featuredRef.current.querySelector(
+    const container = featuredRef.current;
+    const activeCard = container.querySelector(
       `[data-carousel-index="${activeFeaturedIndex}"]`
     ) as HTMLElement | null;
-    activeCard?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    if (!activeCard) {
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const cardRect = activeCard.getBoundingClientRect();
+    const scrollLeft = container.scrollLeft + cardRect.left - containerRect.left - (containerRect.width - cardRect.width) / 2;
+    container.scrollTo({ left: scrollLeft, behavior: "smooth" });
   }, [activeFeaturedIndex, featuredListings]);
+
+  useEffect(() => {
+    if (featuredListings.length <= 1) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (isCarouselHovering) {
+        return;
+      }
+      setActiveFeaturedIndex((current) =>
+        current >= featuredListings.length - 1 ? 0 : current + 1
+      );
+    }, 4500);
+
+    return () => window.clearInterval(interval);
+  }, [featuredListings.length, isCarouselHovering]);
 
   const handlePrevFeatured = () => {
     if (featuredListings.length === 0) {
@@ -188,19 +218,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
       current >= featuredListings.length - 1 ? 0 : current + 1
     );
   };
-
-  useEffect(() => {
-    if (featuredListings.length <= 1) {
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setActiveFeaturedIndex((current) =>
-        current >= featuredListings.length - 1 ? 0 : current + 1
-      );
-    }, 4500);
-
-    return () => window.clearInterval(interval);
-  }, [featuredListings.length]);
 
   const mainListings = [...listings].sort((a, b) => {
     const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -310,10 +327,18 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
             >
               ‹
             </button>
-            <div className={styles.featuredCarousel} ref={featuredRef}>
+            <div
+              className={styles.featuredCarousel}
+              ref={featuredRef}
+              onMouseEnter={() => setIsCarouselHovering(true)}
+              onMouseLeave={() => setIsCarouselHovering(false)}
+              onTouchStart={() => setIsCarouselHovering(true)}
+              onTouchEnd={() => setIsCarouselHovering(false)}
+            >
               {featuredListings.map((listing, index) => (
-                <div
+                <Link
                   key={listing.listing_id}
+                  href={`/listing/${listing.listing_id}`}
                   className={`${styles.featuredCard} ${
                     index === activeFeaturedIndex ? styles.featuredCardActive : ""
                   }`}
@@ -329,7 +354,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
                     <p>{listing.bike_details?.brand || ""} {listing.bike_details?.model || ""}</p>
                     <p>{formatPrice(listing.price)}</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
             <button
@@ -354,6 +379,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
             {mainListings.map((product) => (
               <ProductCard
                 key={product.listing_id}
+                listing_id={product.listing_id}
                 image={getPrimaryImage(product)}
                 title={product.title}
                 condition={getConditionLabel(product)}

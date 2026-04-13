@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, g
 from api.middleware.auth import require_auth, optional_auth
-from infrastructure.databases import SessionLocal
+from infrastructure.databases import SessionLocal, db
 from infrastructure.models.sell.models import Listing, Media, Bicycle
+from infrastructure.models.auth.user_model import UserModel
 from sqlalchemy import or_
 from decimal import Decimal
 import re
@@ -9,7 +10,8 @@ import re
 listing_bp = Blueprint("listing", __name__)
 
 
-def serialize_listing(row, db):
+def serialize_listing(row, db_session):
+    seller = db.session.query(UserModel).filter(UserModel.user_id == row.seller_id).first()
     return {
         "listing_id": row.listing_id,
         "title": row.title,
@@ -18,8 +20,13 @@ def serialize_listing(row, db):
         "status": row.status,
         "is_promoted": bool(row.is_verified),
         "seller_id": row.seller_id,
+        "seller": {
+            "seller_id": seller.user_id if seller else row.seller_id,
+            "name": seller.full_name if seller and seller.full_name else (seller.email if seller else None),
+            "phone": seller.phone if seller else None,
+        },
         "created_at": row.created_at.isoformat() if row.created_at else None,
-        "images": [img.url for img in db.query(Media).filter(Media.listing_id == row.listing_id).all()],
+        "images": [img.url for img in db_session.query(Media).filter(Media.listing_id == row.listing_id).all()],
         "bike_details": {
             **({
                 "brand": bike.brand,
@@ -36,7 +43,7 @@ def serialize_listing(row, db):
                 "mileage_km": bike.mileage_km,
                 "serial_number": bike.serial_number,
                 "primary_image_url": bike.primary_image_url,
-            } if (bike := db.query(Bicycle).filter(Bicycle.listing_id == row.listing_id).first()) else {})
+            } if (bike := db_session.query(Bicycle).filter(Bicycle.listing_id == row.listing_id).first()) else {})
         }
     }
 
@@ -92,6 +99,20 @@ def get_listings():
 
         rows = query.order_by(Listing.created_at.desc()).limit(100).all()
         result = [serialize_listing(r, db) for r in rows]
+        return jsonify(result), 200
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>', methods=['GET'])
+@optional_auth
+def get_listing(listing_id):
+    db = SessionLocal()
+    try:
+        row = db.query(Listing).filter(Listing.listing_id == listing_id).first()
+        if not row:
+            return jsonify({"success": False, "message": "Listing not found"}), 404
+        result = serialize_listing(row, db)
         return jsonify(result), 200
     finally:
         db.close()

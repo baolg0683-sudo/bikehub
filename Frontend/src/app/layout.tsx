@@ -4,6 +4,8 @@ import Header from "../components/Layout/Header";
 import Footer from "../components/Layout/Footer";
 import { DebugAuth } from "../components/Layout/DebugAuth";
 import { AuthProvider } from "../context/AuthContext";
+import { ChatProvider } from "../context/ChatContext";
+import { ChatWidget } from "../components/Common/ChatWidget";
 
 export const metadata: Metadata = {
   title: "BikeMarket - Chợ Xe Đạp Cũ",
@@ -22,12 +24,15 @@ export default function RootLayout({
     <html lang="vi">
       <body>
         <AuthProvider>
-          <Header />
-          <main>
-            {children}
-          </main>
-          <Footer />
-          <DebugAuth />
+          <ChatProvider>
+            <Header />
+            <main>
+              {children}
+            </main>
+            <Footer />
+            <ChatWidget />
+            <DebugAuth />
+          </ChatProvider>
         </AuthProvider>
       </body>
     </html>

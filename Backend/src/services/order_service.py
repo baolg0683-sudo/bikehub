@@ -1,6 +1,6 @@
 from infrastructure.databases import SessionLocal
 from infrastructure.models.orders.models import Order, DepositEscrow
-from infrastructure.models.auth.models import User  # Assuming User model exists
+from infrastructure.models.auth.user_model import UserModel
 from infrastructure.models.sell.models import Listing  # Assuming Listing model exists
 from infrastructure.models.pay.models import WalletTransaction  # Assuming WalletTransaction model exists
 from sqlalchemy.exc import IntegrityError
@@ -47,7 +47,7 @@ class OrderService:
             if not order or order.buyer_id != buyer_id or order.status != 'WAITING_FOR_DEPOSIT':
                 raise ValueError("Invalid order or status")
 
-            buyer = db.query(User).filter(User.user_id == buyer_id).first()
+            buyer = db.query(UserModel).filter(UserModel.user_id == buyer_id).first()
             if buyer.balance < order.final_price:
                 raise ValueError("Insufficient balance")
 
@@ -100,7 +100,7 @@ class OrderService:
             if not escrow or escrow.status != 'HELD_BY_SYSTEM':
                 raise ValueError("Escrow not held")
 
-            seller = db.query(User).filter(User.user_id == order.seller_id).first()
+            seller = db.query(UserModel).filter(UserModel.user_id == order.seller_id).first()
             seller.balance += escrow.amount
 
             # Create payout tx
@@ -141,7 +141,7 @@ class OrderService:
 
             escrow = db.query(DepositEscrow).filter(DepositEscrow.order_id == order_id).first()
             if escrow:
-                buyer = db.query(User).filter(User.user_id == order.buyer_id).first()
+                buyer = db.query(UserModel).filter(UserModel.user_id == order.buyer_id).first()
                 buyer.balance += escrow.amount
 
                 # Create refund tx

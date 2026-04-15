@@ -1,8 +1,6 @@
 ﻿from datetime import datetime
 from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from infrastructure.databases import Base
 
 class ReviewModel(Base):
     __tablename__ = "reviews"

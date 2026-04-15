@@ -291,6 +291,7 @@ export default function LoginPage() {
             access_token: data.data.access_token,
             refresh_token: data.data.refresh_token,
             user: {
+              user_id: data.data.user.user_id,
               full_name: data.data.user.full_name,
               email: data.data.user.email,
               avatar_url: data.data.user.avatar_url

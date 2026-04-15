@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useChat } from "../../../context/ChatContext";
 import styles from "./page.module.css";
 
 interface BikeDetails {
@@ -50,6 +51,7 @@ export default function ListingDetailPage() {
   const [error, setError] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const { openConversation } = useChat();
 
   const formatPrice = (value: string) => {
     const number = Number(value);
@@ -185,9 +187,18 @@ export default function ListingDetailPage() {
           {!isOwnListing && (
             <div className={styles.actionRow}>
               <button className={styles.buyButton}>Đặt mua</button>
-              <Link href="/profile" className={styles.chatButton}>
+              <button
+                type="button"
+                className={styles.chatButton}
+                onClick={() => openConversation({
+                  sellerId: listing.seller_id,
+                  sellerName: listing.seller?.name || `Người bán #${listing.seller_id}`,
+                  listingId: listing.listing_id,
+                  listingTitle: listing.title,
+                })}
+              >
                 Chat với người bán
-              </Link>
+              </button>
             </div>
           )}
 

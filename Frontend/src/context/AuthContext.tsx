@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export interface UserData {
+  user_id?: number;
   full_name: string;
   email: string;
   avatar_url?: string;

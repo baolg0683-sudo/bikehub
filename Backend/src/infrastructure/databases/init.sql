@@ -132,6 +132,7 @@ CREATE TABLE interactions.messages (
     receiver_id INT REFERENCES auth.users(user_id),
     listing_id INT REFERENCES listings.listings(listing_id),
     content TEXT NOT NULL,
+    attachments JSONB DEFAULT '[]',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

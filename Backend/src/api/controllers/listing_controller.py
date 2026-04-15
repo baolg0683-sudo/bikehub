@@ -10,8 +10,25 @@ import re
 listing_bp = Blueprint("listing", __name__)
 
 
-def serialize_listing(row, db_session):
-    seller = db.session.query(UserModel).filter(UserModel.user_id == row.seller_id).first()
+def serialize_listing(row, db_session, sellers=None, media_by_listing=None, bike_by_listing=None):
+    seller = None
+    if sellers is not None:
+        seller = sellers.get(row.seller_id)
+    else:
+        seller = db_session.query(UserModel).filter(UserModel.user_id == row.seller_id).first()
+
+    listing_media = []
+    if media_by_listing is not None:
+        listing_media = media_by_listing.get(row.listing_id, [])
+    else:
+        listing_media = db_session.query(Media).filter(Media.listing_id == row.listing_id).all()
+
+    bike = None
+    if bike_by_listing is not None:
+        bike = bike_by_listing.get(row.listing_id)
+    else:
+        bike = db_session.query(Bicycle).filter(Bicycle.listing_id == row.listing_id).first()
+
     return {
         "listing_id": row.listing_id,
         "title": row.title,
@@ -26,7 +43,7 @@ def serialize_listing(row, db_session):
             "phone": seller.phone if seller else None,
         },
         "created_at": row.created_at.isoformat() if row.created_at else None,
-        "images": [img.url for img in db_session.query(Media).filter(Media.listing_id == row.listing_id).all()],
+        "images": [img.url for img in listing_media],
         "bike_details": {
             **({
                 "brand": bike.brand,
@@ -43,7 +60,7 @@ def serialize_listing(row, db_session):
                 "mileage_km": bike.mileage_km,
                 "serial_number": bike.serial_number,
                 "primary_image_url": bike.primary_image_url,
-            } if (bike := db_session.query(Bicycle).filter(Bicycle.listing_id == row.listing_id).first()) else {})
+            } if bike else {})
         }
     }
 
@@ -59,9 +76,9 @@ def get_listings():
     status_filter = request.args.get('status', 'AVAILABLE').strip()
     min_condition = request.args.get('min_condition', '').strip()
 
-    db = SessionLocal()
+    db_session = SessionLocal()
     try:
-        query = db.query(Listing)
+        query = db_session.query(Listing)
         needs_join = any([search_query, brand_filter, material_filter, type_filter, min_condition])
 
         if needs_join:
@@ -98,10 +115,23 @@ def get_listings():
                 pass
 
         rows = query.order_by(Listing.created_at.desc()).limit(100).all()
-        result = [serialize_listing(r, db) for r in rows]
+        listing_ids = [row.listing_id for row in rows]
+        seller_ids = list({row.seller_id for row in rows})
+
+        sellers = {seller.user_id: seller for seller in db_session.query(UserModel).filter(UserModel.user_id.in_(seller_ids)).all()} if seller_ids else {}
+        media_rows = db_session.query(Media).filter(Media.listing_id.in_(listing_ids)).all() if listing_ids else []
+        bike_rows = db_session.query(Bicycle).filter(Bicycle.listing_id.in_(listing_ids)).all() if listing_ids else []
+
+        media_by_listing = {}
+        for media in media_rows:
+            media_by_listing.setdefault(media.listing_id, []).append(media)
+
+        bike_by_listing = {bike.listing_id: bike for bike in bike_rows}
+
+        result = [serialize_listing(r, db_session, sellers=sellers, media_by_listing=media_by_listing, bike_by_listing=bike_by_listing) for r in rows]
         return jsonify(result), 200
     finally:
-        db.close()
+        db_session.close()
 
 
 @listing_bp.route('/listings/<int:listing_id>', methods=['GET'])
@@ -133,15 +163,26 @@ def get_my_listings():
     if not seller or user_id is None:
         return jsonify({"success": False, "message": "Authentication required"}), 401
 
-    db = SessionLocal()
+    db_session = SessionLocal()
     try:
-        rows = db.query(Listing).filter(Listing.seller_id == user_id).order_by(Listing.created_at.desc()).all()
-        result = [serialize_listing(r, db) for r in rows]
+        rows = db_session.query(Listing).filter(Listing.seller_id == user_id).order_by(Listing.created_at.desc()).all()
+        listing_ids = [row.listing_id for row in rows]
+
+        media_rows = db_session.query(Media).filter(Media.listing_id.in_(listing_ids)).all() if listing_ids else []
+        bike_rows = db_session.query(Bicycle).filter(Bicycle.listing_id.in_(listing_ids)).all() if listing_ids else []
+
+        media_by_listing = {}
+        for media in media_rows:
+            media_by_listing.setdefault(media.listing_id, []).append(media)
+
+        bike_by_listing = {bike.listing_id: bike for bike in bike_rows}
+
+        result = [serialize_listing(r, db_session, media_by_listing=media_by_listing, bike_by_listing=bike_by_listing) for r in rows]
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        db.close()
+        db_session.close()
 
 
 @listing_bp.route("/listings", methods=["POST"])

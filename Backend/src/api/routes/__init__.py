@@ -15,6 +15,10 @@ try:
     from ..controllers.media_controller import media_bp
 except ImportError:
     media_bp = None
+try:
+    from ..controllers.interaction_controller import interactions_bp
+except ImportError:
+    interactions_bp = None
 
 __all__ = ['auth_endpoints_bp', 'register_routes']
 
@@ -33,3 +37,6 @@ def register_routes(app: Flask):
     # Register media/upload routes
     if media_bp:
         app.register_blueprint(media_bp, url_prefix='/api')
+    # Register interactions routes if available
+    if interactions_bp:
+        app.register_blueprint(interactions_bp, url_prefix='/api/interactions')

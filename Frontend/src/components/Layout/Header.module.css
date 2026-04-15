@@ -212,6 +212,35 @@
   color: #d4443f;
 }
 
+.dropdownSection {
+  padding: 0.75rem 1rem;
+}
+
+.dropdownSectionTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.5rem;
+}
+
+.dropdownItemSaved {
+  display: block;
+  padding: 0.55rem 0;
+  color: #334155;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.dropdownItemSaved:hover {
+  color: #d4443f;
+}
+
+.dropdownEmpty {
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .walletInfo {
   display: flex;
   align-items: center;

@@ -1,16 +1,21 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { FiCheckCircle } from "react-icons/fi";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FiCheckCircle, FiHeart } from "react-icons/fi";
 import styles from "./ProductGrid.module.css";
 
 interface ProductCardProps {
+  listing_id: number;
   image: string;
   title: string;
   condition: string;
   price: string;
   isPromoted?: boolean;
   isVerified?: boolean;
+  isWishlisted: boolean;
+  onToggleWishlist: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 interface ListingData {
@@ -37,6 +42,13 @@ interface FilterOption {
   label: string;
 }
 
+interface WishlistItem {
+  listing_id: number;
+  title: string;
+  image: string;
+  price: string;
+}
+
 interface ProductGridFilters {
   q?: string;
   status?: string;
@@ -59,24 +71,47 @@ const formatPrice = (value: string) => {
   return number.toLocaleString("vi-VN") + " đ";
 };
 
-const ProductCard: React.FC<ProductCardProps> = ({ image, title, condition, price, isPromoted, isVerified }) => {
+const WISHLIST_STORAGE_KEY = 'bikehub_wishlist';
+
+const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, condition, price, isPromoted, isVerified, isWishlisted, onToggleWishlist }) => {
+  const router = useRouter();
+
+  const handleCardClick = () => {
+    router.push(`/listing/${listing_id}`);
+  };
+
   return (
-    <article className={styles.productCard}>
+    <article className={styles.productCard} onClick={handleCardClick}>
       <div className={styles.productImageContainer}>
         <img src={image} alt={title} className={styles.productImage} />
-        <div className={styles.productBadge}>{isPromoted ? "Đã trả phí" : "Hot"}</div>
+        <button
+          type="button"
+          className={`${styles.wishlistButton} ${isWishlisted ? styles.wishlistActive : ''}`}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleWishlist(event);
+          }}
+          aria-label={isWishlisted ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
+        >
+          <FiHeart />
+        </button>
       </div>
       <div className={styles.productContent}>
         <h4 className={styles.productTitle}>
-          {title} 
-          {isVerified && <FiCheckCircle style={{ color: '#1d9bf0', marginLeft: '6px', fontSize: '1.1rem', verticalAlign: 'text-bottom' }} title="Xe đã qua kiểm định chất lượng" />}
+          {title}
+          {isVerified && (
+            <FiCheckCircle
+              style={{ color: "#1d9bf0", marginLeft: "6px", fontSize: "1.1rem", verticalAlign: "text-bottom" }}
+              title="Xe đã qua kiểm định chất lượng"
+            />
+          )}
         </h4>
         <p className={styles.productCondition}>
           Tình trạng: <span className={styles.conditionText}>{condition}</span>
         </p>
         <div className={styles.productFooter}>
           <p className={styles.productPrice}>{price}</p>
-          <button className={styles.productBtn}>Xem chi tiết</button>
         </div>
       </div>
     </article>
@@ -91,10 +126,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
   const [selectedMaterial, setSelectedMaterial] = useState("");
   const [selectedCondition, setSelectedCondition] = useState("");
   const [selectedType, setSelectedType] = useState("");
+  const [wishlistIds, setWishlistIds] = useState<number[]>([]);
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
   const featuredRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    loadWishlist();
+
     const loadListings = async () => {
       setLoading(true);
       setError("");
@@ -152,6 +190,57 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
     return condition != null ? `${condition}%` : "Không rõ";
   };
 
+  const getStoredWishlist = (): WishlistItem[] => {
+    if (typeof window === 'undefined') {
+      return [];
+    }
+    const raw = window.localStorage.getItem(WISHLIST_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    try {
+      return JSON.parse(raw) as WishlistItem[];
+    } catch (error) {
+      console.error('[ProductGrid] Failed to parse wishlist', error);
+      return [];
+    }
+  };
+
+  const saveStoredWishlist = (items: WishlistItem[]) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(items));
+    window.dispatchEvent(new Event('wishlistUpdated'));
+  };
+
+  const loadWishlist = () => {
+    const items = getStoredWishlist();
+    setWishlistIds(items.map((item) => item.listing_id));
+  };
+
+  const handleToggleWishlist = (event: React.MouseEvent<HTMLButtonElement>, listing: ListingData) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const current = getStoredWishlist();
+    const alreadySaved = current.some((item) => item.listing_id === listing.listing_id);
+    const nextItems = alreadySaved
+      ? current.filter((item) => item.listing_id !== listing.listing_id)
+      : [
+          ...current,
+          {
+            listing_id: listing.listing_id,
+            title: listing.title,
+            image: getPrimaryImage(listing),
+            price: formatPrice(listing.price),
+          },
+        ];
+
+    saveStoredWishlist(nextItems);
+    setWishlistIds(nextItems.map((item) => item.listing_id));
+  };
+
   const featuredListings = [...listings]
     .sort((a, b) => {
       const aPromoted = a.is_promoted ? 1 : 0;
@@ -167,15 +256,42 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
     setActiveFeaturedIndex(0);
   }, [featuredListings.length]);
 
+  const [isCarouselHovering, setIsCarouselHovering] = useState(false);
+
   useEffect(() => {
     if (!featuredRef.current || featuredListings.length === 0) {
       return;
     }
-    const activeCard = featuredRef.current.querySelector(
+    const container = featuredRef.current;
+    const activeCard = container.querySelector(
       `[data-carousel-index="${activeFeaturedIndex}"]`
     ) as HTMLElement | null;
-    activeCard?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    if (!activeCard) {
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const cardRect = activeCard.getBoundingClientRect();
+    const scrollLeft = container.scrollLeft + cardRect.left - containerRect.left - (containerRect.width - cardRect.width) / 2;
+    container.scrollTo({ left: scrollLeft, behavior: "smooth" });
   }, [activeFeaturedIndex, featuredListings]);
+
+  useEffect(() => {
+    if (featuredListings.length <= 1) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (isCarouselHovering) {
+        return;
+      }
+      setActiveFeaturedIndex((current) =>
+        current >= featuredListings.length - 1 ? 0 : current + 1
+      );
+    }, 4500);
+
+    return () => window.clearInterval(interval);
+  }, [featuredListings.length, isCarouselHovering]);
 
   const handlePrevFeatured = () => {
     if (featuredListings.length === 0) {
@@ -194,19 +310,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
       current >= featuredListings.length - 1 ? 0 : current + 1
     );
   };
-
-  useEffect(() => {
-    if (featuredListings.length <= 1) {
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setActiveFeaturedIndex((current) =>
-        current >= featuredListings.length - 1 ? 0 : current + 1
-      );
-    }, 4500);
-
-    return () => window.clearInterval(interval);
-  }, [featuredListings.length]);
 
   const mainListings = [...listings].sort((a, b) => {
     const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -316,10 +419,18 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
             >
               ‹
             </button>
-            <div className={styles.featuredCarousel} ref={featuredRef}>
+            <div
+              className={styles.featuredCarousel}
+              ref={featuredRef}
+              onMouseEnter={() => setIsCarouselHovering(true)}
+              onMouseLeave={() => setIsCarouselHovering(false)}
+              onTouchStart={() => setIsCarouselHovering(true)}
+              onTouchEnd={() => setIsCarouselHovering(false)}
+            >
               {featuredListings.map((listing, index) => (
-                <div
+                <Link
                   key={listing.listing_id}
+                  href={`/listing/${listing.listing_id}`}
                   className={`${styles.featuredCard} ${
                     index === activeFeaturedIndex ? styles.featuredCardActive : ""
                   }`}
@@ -335,7 +446,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
                     <p>{listing.bike_details?.brand || ""} {listing.bike_details?.model || ""}</p>
                     <p>{formatPrice(listing.price)}</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
             <button
@@ -360,12 +471,15 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
             {mainListings.map((product) => (
               <ProductCard
                 key={product.listing_id}
+                listing_id={product.listing_id}
                 image={getPrimaryImage(product)}
                 title={product.title}
                 condition={getConditionLabel(product)}
                 price={formatPrice(product.price)}
                 isPromoted={product.is_promoted}
                 isVerified={product.is_verified}
+                isWishlisted={wishlistIds.includes(product.listing_id)}
+                onToggleWishlist={(event) => handleToggleWishlist(event, product)}
               />
             ))}
           </div>

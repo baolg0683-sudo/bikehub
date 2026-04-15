@@ -3,15 +3,44 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare } from "react-icons/fi";
+import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare, FiHeart } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./Header.module.css";
+
+const WISHLIST_STORAGE_KEY = 'bikehub_wishlist';
 
 const Header: React.FC = () => {
   const router = useRouter();
   const { loggedIn, user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [savedItems, setSavedItems] = useState<{ listing_id: number; title: string }[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const loadSavedWishlist = () => {
+    if (typeof window === 'undefined') {
+      setSavedItems([]);
+      return;
+    }
+    const raw = window.localStorage.getItem(WISHLIST_STORAGE_KEY);
+    if (!raw) {
+      setSavedItems([]);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as { listing_id: number; title: string }[];
+      setSavedItems(parsed);
+    } catch (error) {
+      console.error('[Header] Could not parse wishlist from localStorage', error);
+      setSavedItems([]);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedWishlist();
+    const handler = () => loadSavedWishlist();
+    window.addEventListener('wishlistUpdated', handler);
+    return () => window.removeEventListener('wishlistUpdated', handler);
+  }, []);
 
   console.log('[Header] Rendering with loggedIn=%s, user=%o', loggedIn, user);
 
@@ -43,18 +72,14 @@ const Header: React.FC = () => {
       <div className={styles.headerContainer}>
         {/* Cửa hàng Logo */}
         <div className={styles.headerLogo}>
-          <div className={styles.logoIcon}>
+          <Link href="/" className={styles.logoIcon}>
             <img src="/assets/favicon.ico" width={24} height={24} alt="logo" />
             <span className={styles.logoText}>BikeMarket</span>
-          </div>
+          </Link>
         </div>
 
         {/* Menu điều hướng */}
         <nav className={styles.headerNav}>
-          <Link href="/" className={styles.navLink}>
-            Trang chủ
-            <span className={styles.navUnderline}></span>
-          </Link>
           <a href="#" className={styles.navLink}>
             Sản phẩm
             <span className={styles.navUnderline}></span>
@@ -99,6 +124,10 @@ const Header: React.FC = () => {
                   <Link href="/profile" className={styles.dropdownItem}>
                     <FiUser className={styles.dropdownIcon} />
                     <span>Thông tin cá nhân</span>
+                  </Link>
+                  <Link href="/wishlist" className={styles.dropdownItem}>
+                    <FiHeart className={styles.dropdownIcon} />
+                    <span>Wishlist đã lưu ({savedItems.length})</span>
                   </Link>
                   <Link href="/manage" className={styles.dropdownItem}>
                     <FiFileText className={styles.dropdownIcon} />

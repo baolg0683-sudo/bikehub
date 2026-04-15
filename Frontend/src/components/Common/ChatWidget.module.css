@@ -1,0 +1,597 @@
+.chatWidget {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  width: 44px;
+  z-index: 60;
+  font-family: inherit;
+}
+
+.chatWidget.open {
+  width: min(520px, calc(100vw - 2rem));
+}
+
+.chatWidget.open {
+  right: 1rem;
+  bottom: 1rem;
+}
+
+.chatWidget.open .toggleButton {
+  display: none;
+}
+
+.toggleButton {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 15px 40px rgba(37, 99, 235, 0.18);
+  position: relative;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.conversationUnread {
+  background: #eff6ff;
+}
+
+.messageUnread {
+  border: 1px solid #60a5fa;
+}
+
+.panel {
+  margin-top: 0.6rem;
+  border-radius: 1.75rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.closeButton {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.panelBody {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  min-height: 460px;
+  max-height: 75vh;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.conversationList,
+.conversationDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.conversationDetail {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.messageList {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  min-height: 0;
+}
+
+.sectionHeader {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid #e8eef7;
+}
+
+.sectionHeader h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.sectionHeader span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.conversationList {
+  border-right: 1px solid #e8eef7;
+  padding: 0.6rem;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+.conversationItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: relative;
+}
+
+.conversationItemContent {
+  min-width: 0;
+  flex: 1;
+}
+
+.conversationItemActions {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.actionMenuToggle {
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.65rem;
+}
+
+.actionMenuToggle:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.actionMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  z-index: 10;
+  min-width: 100px;
+}
+
+.actionMenuItem {
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.75rem;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.actionMenuItem:hover {
+  background: #f8fafc;
+}
+
+.conversationItem:hover,
+.conversationActive {
+  background: #eff6ff;
+}
+
+.conversationItem strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversationItem p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.8rem;
+  word-break: break-word;
+}
+
+.conversationMeta {
+  margin: 0.5rem 0 0;
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.conversationDetail {
+  padding: 0.85rem;
+  min-width: 0;
+}
+
+.detailHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.85rem;
+}
+
+.productLink {
+  display: inline-block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.detailSubtitle {
+  margin: 0;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.messageList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.messageHint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.messageItem {
+  padding: 0.85rem 0.95rem;
+  border-radius: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 80%;
+}
+
+.messageRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.messageDeleteButton {
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.75rem;
+}
+
+.messageDeleteButton:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.messageFromMe {
+  background: #e2ecff;
+  align-self: flex-end;
+}
+
+.messageFromSeller {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  align-self: flex-start;
+}
+
+.messageText {
+  margin: 0;
+  line-height: 1.5;
+  color: #111827;
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+.messageMeta {
+  margin: 0;
+  color: #8b96a8;
+  font-size: 0.75rem;
+}
+
+.inputRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.7rem 0 0;
+}
+
+.textareaWrapper {
+  position: relative;
+  min-height: 72px;
+  overflow: hidden;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 72px;
+  max-height: 140px;
+  border-radius: 2rem;
+  border: 1px solid #d1d5db;
+  padding: 1rem 3.2rem 1rem 1rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.sendButton {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: #0f172a;
+  color: white;
+  border-radius: 50%;
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sendButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.attachmentPreviewContainer {
+  border: 1px solid #e2e8f0;
+  border-radius: 1.2rem;
+  background: #f8fafc;
+  padding: 0.75rem;
+  margin: 0 0.2rem 0.5rem;
+}
+
+.attachmentPreviewHeader {
+  margin-bottom: 0.55rem;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.attachmentPreviewRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.65rem;
+}
+
+.attachmentPreviewItem {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+}
+
+.attachmentPreviewImage,
+.messageAttachmentImage {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+}
+
+.attachmentPreviewVideo,
+.attachmentPreviewFile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 1.5rem;
+}
+
+.attachmentPreviewMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  background: #f8fafc;
+}
+
+.attachmentPreviewName {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #334155;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.attachmentRemoveButton {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.attachmentRow {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0 0.2rem;
+  align-items: center;
+}
+
+.attachButton {
+  position: relative;
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  background: #fafbff;
+  color: #334155;
+  border-radius: 1.2rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.87rem;
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.attachButton:hover {
+  background: #eef2ff;
+}
+
+.attachButtonIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.attachButtonIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hiddenFileInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.messageAttachments {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+.messageAttachmentItem {
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.messageAttachmentVideo {
+  width: 100%;
+  min-height: 100px;
+  background: #111827;
+  border-radius: 1rem;
+}
+
+.messageAttachmentLink {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  color: #0f172a;
+  background: #e2e8f0;
+  border-radius: 0.85rem;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.statusMessage {
+  padding: 0.75rem 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.loginNotice {
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  color: #475569;
+  background: #f8fafc;
+  border-radius: 1rem;
+}
+
+.open {
+  pointer-events: auto;
+}

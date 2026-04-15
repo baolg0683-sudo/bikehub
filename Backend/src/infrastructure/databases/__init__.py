@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 db = SQLAlchemy()
-Base = declarative_base()
+Base = declarative_base(metadata=db.metadata)
 SessionLocal = sessionmaker()
 
 def init_db(app):

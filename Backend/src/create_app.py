@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, g
 from flask_jwt_extended import JWTManager
 from sqlalchemy import text
 from config import Config
@@ -6,7 +6,9 @@ from config_jwt import JWTConfig
 from api.middleware import setup_middleware
 from api.middleware.auth import register_jwt_error_handlers
 from api.routes import register_routes
-from infrastructure.databases import init_db, db
+from api.services.interaction_service import InteractionService
+from infrastructure.databases import init_db, db, SessionLocal
+from infrastructure.repositories.interaction_repository import MessageRepository, ReviewRepository
 from app_logging import setup_logging
 from cors import init_cors
 
@@ -25,6 +27,23 @@ def create_app():
     
     # Initialize database
     init_db(app)
+
+    @app.before_request
+    def attach_interaction_service():
+        db_session = SessionLocal()
+        g.interaction_db = db_session
+        g.interaction_service = InteractionService(
+            MessageRepository(db_session),
+            ReviewRepository(db_session)
+        )
+
+    @app.teardown_request
+    def teardown_interaction_service(exception=None):
+        db_session = getattr(g, "interaction_db", None)
+        if db_session:
+            db_session.close()
+            g.pop("interaction_db", None)
+            g.pop("interaction_service", None)
     
     # Import models to register them with db and Base metadata
     with app.app_context():
@@ -38,13 +57,28 @@ def create_app():
             Media = None
             Bicycle = None
 
+        try:
+            from infrastructure.models.orders.models import Order, DepositEscrow
+            from infrastructure.models.pay.models import WalletTransaction
+        except Exception:
+            Order = None
+            DepositEscrow = None
+            WalletTransaction = None
+
+        try:
+            from infrastructure.models.interactions.message_model import MessageModel
+            from infrastructure.models.interactions.review_model import ReviewModel
+        except Exception:
+            MessageModel = None
+            ReviewModel = None
+
         # Ensure required schemas exist for PostgreSQL databases.
         try:
             dialect_name = getattr(db.engine, 'dialect', None) and db.engine.dialect.name
             if dialect_name in ('postgresql', 'postgres'):
                 with db.engine.begin() as connection:
-                    connection.execute(text('CREATE SCHEMA IF NOT EXISTS auth'))
-                    connection.execute(text('CREATE SCHEMA IF NOT EXISTS listings'))
+                    for schema in ('auth', 'listings', 'interactions', 'orders', 'wallet', 'inspections'):
+                        connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS {schema}'))
         except Exception as e:
             print(f"[create_app] warning: could not ensure required schemas exist: {e}")
 

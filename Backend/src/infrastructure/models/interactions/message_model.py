@@ -1,8 +1,6 @@
 ﻿from datetime import datetime
-from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey, JSON
+from infrastructure.databases import Base
 
 class MessageModel(Base):
     __tablename__ = "messages"
@@ -13,4 +11,5 @@ class MessageModel(Base):
     receiver_id = Column(Integer, ForeignKey("auth.users.user_id"), nullable=False)
     listing_id = Column(Integer, ForeignKey("listings.listings.listing_id"), nullable=False)
     content = Column(Text, nullable=False)
+    attachments = Column(JSON, default=list, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

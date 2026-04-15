@@ -113,7 +113,8 @@
 }
 
 .buyButton,
-.chatButton {
+.chatButton,
+.wishlistDetailButton {
   border: none;
   padding: 0.95rem 1.4rem;
   border-radius: 0.95rem;
@@ -134,6 +135,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.wishlistDetailButton {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wishlistDetailButton:hover {
+  transform: translateY(-1px);
+  background: rgba(220, 38, 38, 0.15);
+}
+
+.wishlistDetailButton.wishlistActive {
+  background: #dc2626;
+  color: white;
 }
 
 .buyButton:hover,

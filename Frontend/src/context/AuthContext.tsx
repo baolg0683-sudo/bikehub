@@ -7,6 +7,7 @@ export interface UserData {
   full_name: string;
   email: string;
   avatar_url?: string;
+  role?: string;
 }
 
 interface AuthContextValue {

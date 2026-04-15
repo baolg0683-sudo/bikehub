@@ -21,7 +21,7 @@ const frameMaterials = ["Carbon", "Nhôm", "Thép", "Titan", "Hợp kim khác"];
 
 const brakeTypes = ["Phanh dầu", "Phanh cơ", "Phanh đĩa", "Phanh vành"];
 
-export default function PostBikePage() {
+function PostBikeForm() {
   const [form, setForm] = useState({
     title: "",
     brand: "Giant",
@@ -503,5 +503,13 @@ export default function PostBikePage() {
         {status && <div className={styles.formStatus}>{status}</div>}
       </form>
     </section>
+  );
+}
+
+export default function PostBikePage() {
+  return (
+    <React.Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Đang tải...</div>}>
+      <PostBikeForm />
+    </React.Suspense>
   );
 }

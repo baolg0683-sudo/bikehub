@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FiHeart } from "react-icons/fi";
+import { useAuth } from "../../../context/AuthContext";
+import { readWishlist, saveWishlist, WishlistItem } from "../../../utils/wishlist";
 import { useChat } from "../../../context/ChatContext";
 import styles from "./page.module.css";
 
@@ -50,66 +52,12 @@ export default function ListingDetailPage() {
   const [related, setRelated] = useState<ListingDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const { openConversation } = useChat();
-
-  const WISHLIST_STORAGE_KEY = 'bikehub_wishlist';
-
-  const getStoredWishlist = () => {
-    if (typeof window === 'undefined') {
-      return [] as { listing_id: number; title: string; image: string; price: string }[];
-    }
-    const raw = window.localStorage.getItem(WISHLIST_STORAGE_KEY);
-    if (!raw) {
-      return [] as { listing_id: number; title: string; image: string; price: string }[];
-    }
-    try {
-      return JSON.parse(raw) as { listing_id: number; title: string; image: string; price: string }[];
-    } catch (error) {
-      console.error('[ListingDetail] Invalid wishlist data', error);
-      return [];
-    }
-  };
-
-  const saveStoredWishlist = (items: { listing_id: number; title: string; image: string; price: string }[]) => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    window.localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(items));
-    window.dispatchEvent(new Event('wishlistUpdated'));
-  };
-
-  const updateWishlistedState = (listingId: number | null) => {
-    if (typeof window === 'undefined' || listingId === null) {
-      setIsWishlisted(false);
-      return;
-    }
-    const stored = getStoredWishlist();
-    setIsWishlisted(stored.some((item) => item.listing_id === listingId));
-  };
-
-  const toggleWishlist = () => {
-    if (!listing) {
-      return;
-    }
-    const stored = getStoredWishlist();
-    const alreadySaved = stored.some((item) => item.listing_id === listing.listing_id);
-    const nextItems = alreadySaved
-      ? stored.filter((item) => item.listing_id !== listing.listing_id)
-      : [
-          ...stored,
-          {
-            listing_id: listing.listing_id,
-            title: listing.title,
-            image: listing.images?.[0] || listing.bike_details?.primary_image_url || "/assets/bike.png",
-            price: formatPrice(listing.price),
-          },
-        ];
-    saveStoredWishlist(nextItems);
-    setIsWishlisted(!alreadySaved);
-  };
+  const { loggedIn, user } = useAuth();
+  const router = useRouter();
 
   const formatPrice = (value: string) => {
     const number = Number(value);
@@ -124,10 +72,8 @@ export default function ListingDetailPage() {
       return;
     }
 
-    updateWishlistedState(listing?.listing_id ?? null);
-
     const loadCurrentUser = async () => {
-      const token = typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null;
+      const token = typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null;
       if (!token) {
         return;
       }
@@ -167,7 +113,6 @@ export default function ListingDetailPage() {
         const detail: ListingDetail = await response.json();
         setListing(detail);
         setActiveImageIndex(0);
-        updateWishlistedState(detail.listing_id);
 
         const brand = detail.bike_details?.brand || "";
         const type = detail.bike_details?.type || "";
@@ -191,6 +136,41 @@ export default function ListingDetailPage() {
 
     loadListing();
   }, [listingId]);
+
+  useEffect(() => {
+    if (!user || !listing) {
+      setIsWishlisted(false);
+      return;
+    }
+
+    const wishlistItems = readWishlist(user.user_id ?? null);
+    setIsWishlisted(wishlistItems.some((item) => item.listing_id === listing.listing_id));
+  }, [user, listing]);
+
+  const handleToggleWishlist = () => {
+    if (!loggedIn || !user) {
+      router.push('/login');
+      return;
+    }
+
+    const currentItems = readWishlist(user.user_id ?? null);
+    const alreadySaved = currentItems.some((item) => item.listing_id === listing?.listing_id);
+
+    const nextItems = alreadySaved
+      ? currentItems.filter((item) => item.listing_id !== listing?.listing_id)
+      : [
+          ...currentItems,
+          {
+            listing_id: listing!.listing_id,
+            title: listing!.title,
+            image: images[activeImageIndex] || '/assets/bike.png',
+            price: formatPrice(listing!.price),
+          },
+        ];
+
+    saveWishlist(user.user_id ?? null, nextItems);
+    setIsWishlisted(!alreadySaved);
+  };
 
   if (loading) {
     return <div className={styles.page}><p className={styles.statusMessage}>Đang tải chi tiết sản phẩm...</p></div>;
@@ -250,6 +230,14 @@ export default function ListingDetailPage() {
               <button className={styles.buyButton}>Đặt mua</button>
               <button
                 type="button"
+                className={`${styles.wishlistDetailButton} ${isWishlisted ? styles.wishlistActive : ''}`}
+                onClick={handleToggleWishlist}
+              >
+                <FiHeart />
+                {isWishlisted ? 'Đã lưu' : 'Lưu lại'}
+              </button>
+              <button
+                type="button"
                 className={styles.chatButton}
                 onClick={() => openConversation({
                   sellerId: listing.seller_id,
@@ -259,15 +247,6 @@ export default function ListingDetailPage() {
                 })}
               >
                 Chat với người bán
-              </button>
-              <button
-                type="button"
-                className={`${styles.wishlistDetailButton} ${isWishlisted ? styles.wishlistActive : ''}`}
-                onClick={toggleWishlist}
-                aria-label={isWishlisted ? 'Xóa khỏi danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}
-              >
-                <FiHeart />
-                {isWishlisted ? 'Đã lưu' : 'Lưu yêu thích'}
               </button>
             </div>
           )}

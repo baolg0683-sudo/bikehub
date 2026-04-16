@@ -11,6 +11,8 @@ from infrastructure.databases import init_db, db, SessionLocal
 from infrastructure.repositories.interaction_repository import MessageRepository, ReviewRepository
 from app_logging import setup_logging
 from cors import init_cors
+import bcrypt
+import os
 
 def create_app():
     app = Flask(__name__)
@@ -72,6 +74,11 @@ def create_app():
             MessageModel = None
             ReviewModel = None
 
+        try:
+            from infrastructure.models.inspections.report_model import InspectionReport
+        except Exception:
+            InspectionReport = None
+
         # Ensure required schemas exist for PostgreSQL databases.
         try:
             dialect_name = getattr(db.engine, 'dialect', None) and db.engine.dialect.name
@@ -85,6 +92,27 @@ def create_app():
         # Flask-SQLAlchemy models
         from infrastructure.models.auth.user_model import UserModel
         db.create_all()
+
+        # Automatically create a default admin account if one does not exist and credentials are provided.
+        default_admin_email = os.getenv('DEFAULT_ADMIN_EMAIL')
+        default_admin_password = os.getenv('DEFAULT_ADMIN_PASSWORD')
+        default_admin_phone = os.getenv('DEFAULT_ADMIN_PHONE')
+        default_admin_name = os.getenv('DEFAULT_ADMIN_NAME', 'BikeHub Admin')
+
+        if default_admin_email and default_admin_password and default_admin_phone:
+            existing_admin = db.session.query(UserModel).filter(UserModel.role == 'ADMIN').first()
+            if not existing_admin:
+                salt = bcrypt.gensalt()
+                hashed_password = bcrypt.hashpw(default_admin_password.encode('utf-8'), salt).decode('utf-8')
+                admin = UserModel(
+                    email=default_admin_email.strip().lower(),
+                    password_hash=hashed_password,
+                    full_name=default_admin_name,
+                    phone=default_admin_phone.strip(),
+                    role='ADMIN'
+                )
+                db.session.add(admin)
+                db.session.commit()
 
         # Create tables for Base metadata (e.g., listings schema)
         # SQLite does not support named schemas (Postgres-style). When running

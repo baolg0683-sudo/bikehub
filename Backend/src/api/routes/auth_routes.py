@@ -273,6 +273,142 @@ def register():
         }), 500
 
 
+@auth_endpoints_bp.route('/create', methods=['POST'])
+@require_admin
+def create_user():
+    """
+    Admin-only endpoint to create a new user account with a specified role.
+    """
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "No data provided"
+            }), 400
+
+        email = str(data.get('email', '')).strip().lower()
+        password = str(data.get('password', ''))
+        phone = str(data.get('phone', '')).strip()
+        full_name = str(data.get('full_name', '')).strip()
+        date_of_birth_str = data.get('date_of_birth')
+        role = str(data.get('role', 'USER')).upper()
+
+        valid_roles = ['ADMIN', 'USER', 'INSPECTOR']
+
+        if len(password) < 6:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Password must be at least 6 characters long"
+            }), 400
+
+        if not email or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Email không hợp lệ"
+            }), 400
+
+        cleaned_phone = re.sub(r'[^0-9+]', '', phone)
+        digits_only = re.sub(r'[^0-9]', '', cleaned_phone)
+        if not digits_only.startswith('0'):
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Số điện thoại phải bắt đầu bằng 0"
+            }), 400
+
+        if not digits_only or len(digits_only) < 10 or len(digits_only) > 11:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Số điện thoại không hợp lệ (10-11 chữ số)"
+            }), 400
+
+        if not full_name or len(full_name) < 2:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Họ tên không được để trống"
+            }), 400
+
+        date_of_birth = None
+        if date_of_birth_str:
+            try:
+                date_of_birth = datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
+                today = datetime.now().date()
+                age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
+                if age < 13:
+                    return jsonify({
+                        "success": False,
+                        "error": "Validation error",
+                        "message": "Bạn phải từ 13 tuổi trở lên"
+                    }), 400
+            except ValueError:
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Ngày sinh không hợp lệ (định dạng: YYYY-MM-DD)"
+                }), 400
+
+        if role not in valid_roles:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": f"Role must be one of: {', '.join(valid_roles)}"
+            }), 400
+
+        existing_user = db.session.query(UserModel).filter(
+            or_(
+                UserModel.email == email,
+                UserModel.phone == cleaned_phone
+            )
+        ).first()
+
+        if existing_user:
+            conflict_field = 'email' if existing_user.email == email else 'phone'
+            return jsonify({
+                "success": False,
+                "error": "Conflict",
+                "message": f"{conflict_field.capitalize()} đã tồn tại"
+            }), 409
+
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+        new_user = UserModel()
+        new_user.email = email  # type: ignore[assignment]
+        new_user.password_hash = hashed_password  # type: ignore[assignment]
+        new_user.full_name = full_name  # type: ignore[assignment]
+        new_user.phone = cleaned_phone  # type: ignore[assignment]
+        new_user.date_of_birth = date_of_birth  # type: ignore[assignment]
+        new_user.role = role  # type: ignore[assignment]
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "User created successfully",
+            "user": {
+                "user_id": new_user.user_id,
+                "email": new_user.email,
+                "phone": new_user.phone,
+                "role": new_user.role
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "error": "Server error",
+            "message": str(e)
+        }), 500
+
+
 @auth_endpoints_bp.route('/login', methods=['POST'])
 def login():
     """

@@ -95,7 +95,7 @@ function PostBikeForm() {
     event.preventDefault();
     setStatus("Đang gửi...");
     try {
-      const storedToken = typeof window !== 'undefined' ? (window.localStorage.getItem('authToken') || window.localStorage.getItem('access_token') || '') : '';
+      const storedToken = typeof window !== 'undefined' ? (window.sessionStorage.getItem('authToken') || window.sessionStorage.getItem('access_token') || '') : '';
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (storedToken) headers["Authorization"] = `Bearer ${storedToken}`;
 
@@ -168,7 +168,7 @@ function PostBikeForm() {
       return;
     }
 
-    const storedToken = typeof window !== 'undefined' ? (window.localStorage.getItem('access_token') || '') : '';
+    const storedToken = typeof window !== 'undefined' ? (window.sessionStorage.getItem('access_token') || '') : '';
     if (!storedToken) {
       setStatus('Vui lòng đăng nhập để chỉnh sửa tin đăng.');
       return;

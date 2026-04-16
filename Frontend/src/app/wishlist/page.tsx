@@ -3,50 +3,39 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FiHeart, FiTrash2 } from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext";
+import { readWishlist, saveWishlist, WishlistItem } from "../../utils/wishlist";
 import styles from "./page.module.css";
 
-interface WishlistItem {
-  listing_id: number;
-  title: string;
-  image: string;
-  price: string;
-}
-
-const WISHLIST_STORAGE_KEY = "bikehub_wishlist";
-
-const parseWishlist = (): WishlistItem[] => {
-  if (typeof window === "undefined") {
-    return [];
-  }
-  const raw = window.localStorage.getItem(WISHLIST_STORAGE_KEY);
-  if (!raw) {
-    return [];
-  }
-  try {
-    return JSON.parse(raw) as WishlistItem[];
-  } catch (error) {
-    console.error("[WishlistPage] Failed to parse wishlist", error);
-    return [];
-  }
-};
-
 export default function WishlistPage() {
+  const { loggedIn, user } = useAuth();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [error, setError] = useState("");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setWishlist(parseWishlist());
-    const handler = () => setWishlist(parseWishlist());
+    if (!loggedIn || !user) {
+      setWishlist([]);
+      setReady(true);
+      return;
+    }
+
+    setWishlist(readWishlist(user.user_id ?? null));
+    setReady(true);
+    const handler = () => setWishlist(readWishlist(user.user_id ?? null));
     window.addEventListener("wishlistUpdated", handler);
     return () => window.removeEventListener("wishlistUpdated", handler);
-  }, []);
+  }, [loggedIn, user]);
 
   const removeItem = (listingId: number) => {
     try {
-      const items = parseWishlist();
+      if (!user) {
+        setError("Vui lòng đăng nhập để xóa sản phẩm khỏi wishlist.");
+        return;
+      }
+      const items = readWishlist(user.user_id ?? null);
       const nextItems = items.filter((item) => item.listing_id !== listingId);
-      window.localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(nextItems));
-      window.dispatchEvent(new Event("wishlistUpdated"));
+      saveWishlist(user.user_id ?? null, nextItems);
       setWishlist(nextItems);
     } catch (err) {
       setError("Không thể xóa sản phẩm khỏi wishlist.");
@@ -64,7 +53,18 @@ export default function WishlistPage() {
 
       {error && <div className={styles.errorMessage}>{error}</div>}
 
-      {wishlist.length === 0 ? (
+      {!ready ? (
+        <div className={styles.emptyState}>
+          <p>Đang tải wishlist...</p>
+        </div>
+      ) : !loggedIn ? (
+        <div className={styles.emptyState}>
+          <p>Bạn cần đăng nhập để xem wishlist của mình.</p>
+          <Link href="/login" className={styles.primaryButton}>
+            Đăng nhập
+          </Link>
+        </div>
+      ) : wishlist.length === 0 ? (
         <div className={styles.emptyState}>
           <p>Hiện tại bạn chưa lưu sản phẩm nào.</p>
           <Link href="/" className={styles.primaryButton}>

@@ -25,7 +25,7 @@ class TokenManager:
         
         Args:
             user_id: User ID
-            user_role: User role (ADMIN, SELLER, BUYER, INSPECTOR, USER)
+            user_role: User role (ADMIN, INSPECTOR, USER)
             additional_claims: Additional claims to include in token
             
         Returns:

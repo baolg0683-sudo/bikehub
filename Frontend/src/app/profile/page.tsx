@@ -54,7 +54,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const storedToken = auth.accessToken ?? window.localStorage.getItem("access_token") ?? "";
+    const storedToken = auth.accessToken ?? window.sessionStorage.getItem("access_token") ?? "";
     setToken(storedToken);
     if (storedToken) {
       fetchProfile(storedToken);

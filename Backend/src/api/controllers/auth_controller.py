@@ -28,7 +28,7 @@ class SignupSchema(Schema):
     phone = fields.String(required=False)
     role = fields.String(
         required=True, 
-        validate=validate.OneOf(["ADMIN", "USER", "SELLER", "BUYER", "INSPECTOR"])
+        validate=validate.OneOf(["ADMIN", "USER", "INSPECTOR"])
     )
 
 # Khởi tạo biến để các hàm bên dưới gọi tới

@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare, FiHeart } from "react-icons/fi";
+import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare, FiHeart, FiPlus } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
+import { readWishlist } from "../../utils/wishlist";
 import styles from "./Header.module.css";
-
-const WISHLIST_STORAGE_KEY = 'bikehub_wishlist';
 
 const Header: React.FC = () => {
   const router = useRouter();
@@ -15,22 +14,19 @@ const Header: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [savedItems, setSavedItems] = useState<{ listing_id: number; title: string }[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isAdminUser = user?.role === 'ADMIN';
 
   const loadSavedWishlist = () => {
-    if (typeof window === 'undefined') {
+    if (!user) {
       setSavedItems([]);
       return;
     }
-    const raw = window.localStorage.getItem(WISHLIST_STORAGE_KEY);
-    if (!raw) {
-      setSavedItems([]);
-      return;
-    }
+
     try {
-      const parsed = JSON.parse(raw) as { listing_id: number; title: string }[];
+      const parsed = readWishlist(user.user_id ?? null);
       setSavedItems(parsed);
     } catch (error) {
-      console.error('[Header] Could not parse wishlist from localStorage', error);
+      console.error('[Header] Could not parse wishlist for user', error);
       setSavedItems([]);
     }
   };
@@ -40,7 +36,7 @@ const Header: React.FC = () => {
     const handler = () => loadSavedWishlist();
     window.addEventListener('wishlistUpdated', handler);
     return () => window.removeEventListener('wishlistUpdated', handler);
-  }, []);
+  }, [user]);
 
   console.log('[Header] Rendering with loggedIn=%s, user=%o', loggedIn, user);
 
@@ -103,9 +99,11 @@ const Header: React.FC = () => {
           )}
           {loggedIn && (
             <div className={styles.userSection} ref={dropdownRef}>
-              <Link href="/post" className={styles.btnPost}>
-                Đăng tin
-              </Link>
+              {!isAdminUser && (
+                <Link href="/post" className={styles.btnPost}>
+                  Đăng tin
+                </Link>
+              )}
               <div className={styles.userInfo} onClick={() => setShowDropdown(prev => !prev)}>
                 <div className={styles.userAvatar}>
                   {user?.avatar_url ? (
@@ -125,28 +123,24 @@ const Header: React.FC = () => {
                     <FiUser className={styles.dropdownIcon} />
                     <span>Thông tin cá nhân</span>
                   </Link>
-                  <Link href="/wishlist" className={styles.dropdownItem}>
-                    <FiHeart className={styles.dropdownIcon} />
-                    <span>Wishlist đã lưu ({savedItems.length})</span>
-                  </Link>
-                  <Link href="/manage" className={styles.dropdownItem}>
-                    <FiFileText className={styles.dropdownIcon} />
-                    <span>Quản lý tin đăng</span>
-                  </Link>
+                  {!isAdminUser && (
+                    <>
+                      <Link href="/wishlist" className={styles.dropdownItem}>
+                        <FiHeart className={styles.dropdownIcon} />
+                        <span>Wishlist đã lưu ({savedItems.length})</span>
+                      </Link>
+                      <Link href="/manage" className={styles.dropdownItem}>
+                        <FiFileText className={styles.dropdownIcon} />
+                        <span>Quản lý tin đăng</span>
+                      </Link>
+                    </>
+                  )}
                   {user?.role === 'INSPECTOR' && (
                     <Link href="/inspector" className={styles.dropdownItem}>
                       <FiCheckSquare className={styles.dropdownIcon} />
                       <span>Khu vực Kiểm định</span>
                     </Link>
                   )}
-                  <div className={styles.dropdownDivider}></div>
-                  <div className={styles.walletInfo}>
-                    <FiDollarSign className={styles.walletIcon} />
-                    <div className={styles.walletContent}>
-                      <div className={styles.walletLabel}>Số dư ví</div>
-                      <div className={styles.walletBalance}>0 ₫</div>
-                    </div>
-                  </div>
                   <div className={styles.dropdownDivider}></div>
                   <button 
                     onClick={handleLogout} 

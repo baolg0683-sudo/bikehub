@@ -19,6 +19,10 @@ try:
     from ..controllers.interaction_controller import interactions_bp
 except ImportError:
     interactions_bp = None
+try:
+    from ..controllers.wallet_controller import wallet_bp
+except ImportError:
+    wallet_bp = None
 
 __all__ = ['auth_endpoints_bp', 'register_routes']
 
@@ -40,3 +44,6 @@ def register_routes(app: Flask):
     # Register interactions routes if available
     if interactions_bp:
         app.register_blueprint(interactions_bp, url_prefix='/api/interactions')
+    # Register wallet routes if available
+    if wallet_bp:
+        app.register_blueprint(wallet_bp, url_prefix='/api')

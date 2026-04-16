@@ -294,11 +294,14 @@ export default function LoginPage() {
               user_id: data.data.user.user_id,
               full_name: data.data.user.full_name,
               email: data.data.user.email,
-              avatar_url: data.data.user.avatar_url
+              avatar_url: data.data.user.avatar_url,
+              role: data.data.user.role
             }
           });
-          console.log('[Login] Calling router.push("/")');
-          router.push('/');
+          console.log('[Login] User role:', data.data.user.role);
+          const redirectPath = data.data.user.role === 'ADMIN' ? '/admin' : '/';
+          console.log('[Login] Redirecting to', redirectPath);
+          router.push(redirectPath);
         } else {
           setNotice(data.message || "Đăng nhập thất bại. Vui lòng thử lại.");
         }

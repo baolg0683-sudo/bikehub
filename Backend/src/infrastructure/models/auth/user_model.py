@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, Date, Text, func
+from sqlalchemy import Column, Integer, String, DateTime, Float, Date, Text, Numeric, func
 from infrastructure.databases import db
 
 class UserModel(db.Model):
@@ -13,6 +13,7 @@ class UserModel(db.Model):
     date_of_birth = Column(Date)
     avatar_url = Column(Text)
     role = Column(String(20), nullable=False)
+    balance = Column(Numeric(15, 2), default=0.00)
     reputation_score = Column(Float, default=5.0)
     certificate_id = Column(String(50))
     status = Column(String(20), default='ACTIVE')

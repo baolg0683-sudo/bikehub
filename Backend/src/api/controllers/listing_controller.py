@@ -3,8 +3,10 @@ from api.middleware.auth import require_auth, optional_auth
 from infrastructure.databases import SessionLocal, db
 from infrastructure.models.sell.models import Listing, Media, Bicycle
 from infrastructure.models.auth.user_model import UserModel
+from infrastructure.models.inspections.report_model import InspectionReport
 from sqlalchemy import or_
 from decimal import Decimal
+from datetime import datetime
 import re
 
 listing_bp = Blueprint("listing", __name__)
@@ -35,6 +37,11 @@ def serialize_listing(row, db_session, sellers=None, media_by_listing=None, bike
         "description": row.description,
         "price": str(row.price),
         "status": row.status,
+        "inspection_status": getattr(row, 'inspection_status', None),
+        "inspection_fee": str(getattr(row, 'inspection_fee', 50000)),
+        "inspection_schedule": row.inspection_schedule.isoformat() if getattr(row, 'inspection_schedule', None) else None,
+        "inspection_notes": getattr(row, 'inspection_notes', None),
+        "is_hidden": bool(getattr(row, 'is_hidden', False)),
         "is_verified": bool(row.is_verified),
         "seller_id": row.seller_id,
         "seller": {
@@ -362,6 +369,160 @@ def request_promotion(listing_id):
         db.close()
 
 
+@listing_bp.route('/listings/<int:listing_id>/request-inspection', methods=['POST'])
+@require_auth
+def request_inspection(listing_id):
+    seller = g.get('user')
+    if not seller:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    try:
+        seller_id = int(seller.get('user_id'))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == seller_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found or unauthorized"}), 404
+
+        if listing.inspection_status in ('REQUESTED', 'SCHEDULED', 'PASSED'):
+            return jsonify({"success": False, "message": "Inspection already requested or completed."}), 400
+
+        listing.inspection_status = 'REQUESTED'
+        listing.inspection_fee = 50000
+        listing.status = 'PENDING'
+        listing.is_hidden = False
+        db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Yêu cầu kiểm định đã được gửi. Phí kiểm định: 50.000đ.",
+            "inspection_fee": str(listing.inspection_fee)
+        }), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/pending-inspection', methods=['GET'])
+@require_auth
+def get_pending_listings():
+    """Return all pending listings for inspector."""
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Listing).filter(
+            Listing.inspection_status.in_(['REQUESTED', 'SCHEDULED']),
+            Listing.is_hidden == False
+        ).order_by(Listing.created_at.desc()).all()
+        result = [serialize_listing(r, db) for r in rows]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>/schedule-inspection', methods=['POST'])
+@require_auth
+def schedule_inspection(listing_id):
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    data = request.get_json() or {}
+    schedule_at = data.get('scheduled_at')
+    notes = data.get('notes', '')
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found"}), 404
+
+        if listing.inspection_status not in ('REQUESTED', 'SCHEDULED'):
+            return jsonify({"success": False, "message": "Listing is not ready to be scheduled for inspection."}), 400
+
+        listing.inspection_status = 'SCHEDULED'
+        listing.inspection_schedule = datetime.fromisoformat(schedule_at) if schedule_at else datetime.utcnow()
+        listing.inspection_notes = notes
+        db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Inspection scheduled successfully",
+            "inspection_schedule": listing.inspection_schedule.isoformat()
+        }), 200
+    except ValueError:
+        return jsonify({"success": False, "message": "Scheduled date is invalid. Use ISO format."}), 400
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>/inspect', methods=['POST'])
+@require_auth
+def inspect_listing(listing_id):
+    """Approve or reject a listing."""
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    data = request.get_json() or {}
+    action = str(data.get('action', '')).upper()  # PASS or FAIL
+    technical_details = data.get('technical_details') or {}
+    overall_verdict = data.get('overall_verdict', '')
+
+    if action not in ('PASS', 'FAIL'):
+        return jsonify({"success": False, "message": "Invalid action. Use PASS or FAIL."}), 400
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found"}), 404
+
+        if action == 'PASS':
+            listing.is_verified = True
+            listing.status = 'AVAILABLE'
+            listing.inspection_status = 'PASSED'
+            listing.is_hidden = False
+        else:
+            listing.is_verified = False
+            listing.status = 'HIDDEN'
+            listing.inspection_status = 'FAILED'
+            listing.is_hidden = True
+            listing.inspection_notes = overall_verdict or 'Không đạt kiểm định. Vui lòng liên hệ người kiểm định để điều chỉnh.'
+
+        report = InspectionReport(
+            listing_id=listing_id,
+            inspector_id=int(user.get('user_id')),
+            technical_details=technical_details,
+            overall_verdict=overall_verdict,
+            scheduled_at=listing.inspection_schedule,
+            fee_amount=listing.inspection_fee,
+            is_passed=(action == 'PASS')
+        )
+        db.add(report)
+        db.commit()
+
+        return jsonify({"success": True, "message": f"Listing {action}ED", "inspection_status": listing.inspection_status}), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
 @listing_bp.route('/listings/<int:listing_id>', methods=['DELETE'])
 @require_auth
 def delete_listing(listing_id):
@@ -512,59 +673,6 @@ def update_listing(listing_id):
             "created_at": listing.created_at.isoformat() if listing.created_at else None,
             "images": image_urls,
         }), 200
-    except Exception as e:
-        db.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
-    finally:
-        db.close()
-
-
-@listing_bp.route("/listings/pending-inspection", methods=["GET"])
-@require_auth
-def get_pending_listings():
-    """Return all pending listings for inspector."""
-    user = g.get('user')
-    if not user or user.get('role') != 'INSPECTOR':
-        return jsonify({"success": False, "message": "Unauthorized"}), 403
-
-    db = SessionLocal()
-    try:
-        rows = db.query(Listing).filter(Listing.status == 'PENDING', Listing.is_verified == False).order_by(Listing.created_at.desc()).all()
-        result = [serialize_listing(r, db) for r in rows]
-        return jsonify(result), 200
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-    finally:
-        db.close()
-
-
-@listing_bp.route("/listings/<int:listing_id>/inspect", methods=["POST"])
-@require_auth
-def inspect_listing(listing_id):
-    """Approve or reject a listing."""
-    user = g.get('user')
-    if not user or user.get('role') != 'INSPECTOR':
-        return jsonify({"success": False, "message": "Unauthorized"}), 403
-
-    data = request.get_json() or {}
-    action = data.get('action') # 'APPROVE' or 'REJECT'
-
-    db = SessionLocal()
-    try:
-        listing = db.query(Listing).filter(Listing.listing_id == listing_id).first()
-        if not listing:
-            return jsonify({"success": False, "message": "Listing not found"}), 404
-
-        if action == 'APPROVE':
-            listing.is_verified = True
-            listing.status = 'AVAILABLE'
-        elif action == 'REJECT':
-            db.delete(listing)
-        else:
-            return jsonify({"success": False, "message": "Invalid action"}), 400
-
-        db.commit()
-        return jsonify({"success": True, "message": f"Listing {action}D"}), 200
     except Exception as e:
         db.rollback()
         return jsonify({"success": False, "message": str(e)}), 500

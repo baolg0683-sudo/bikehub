@@ -19,7 +19,8 @@ CREATE TABLE auth.users (
     phone VARCHAR(20) UNIQUE NOT NULL,
     date_of_birth DATE,
     avatar_url TEXT,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'USER', 'INSPECTOR')),
+    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'INSPECTOR', 'USER')),
+    balance DECIMAL(15, 2) DEFAULT 0.00,
     reputation_score FLOAT DEFAULT 5.0,
     certificate_id VARCHAR(50),
     status VARCHAR(20) DEFAULT 'ACTIVE',
@@ -35,9 +36,12 @@ CREATE TABLE listings.listings (
     description TEXT,
     price DECIMAL(15, 2) NOT NULL,
     status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, AVAILABLE, RESERVED, SOLD, HIDDEN
+    inspection_status VARCHAR(20) DEFAULT 'NONE', -- NONE, REQUESTED, SCHEDULED, PASSED, FAILED
+    inspection_fee DECIMAL(10, 2) DEFAULT 50000,
+    inspection_schedule TIMESTAMP,
+    inspection_notes TEXT,
+    is_hidden BOOLEAN DEFAULT FALSE,
     is_verified BOOLEAN DEFAULT FALSE,
-    verified_by INT REFERENCES auth.users(user_id),
-    verified_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -124,6 +128,8 @@ CREATE TABLE inspections.reports (
     inspector_id INT REFERENCES auth.users(user_id),
     technical_details JSONB, -- Lưu chi tiết kỹ thuật khung, phanh...
     overall_verdict TEXT,
+    scheduled_at TIMESTAMP,
+    fee_amount DECIMAL(10, 2) DEFAULT 50000,
     is_passed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -147,37 +153,3 @@ CREATE TABLE interactions.reviews (
     comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TABLE interactions.wishlists (
-    wishlist_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
-    listing_id INT REFERENCES listings.listings(listing_id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, listing_id)
-);
-
------------------------------------------------------------
--- SEED DATA FOR ADMIN, INSPECTOR, VERIFIED LISTING, AND WISHLIST
------------------------------------------------------------
-INSERT INTO auth.users (email, password, full_name, phone, date_of_birth, role, reputation_score, certificate_id, status)
-VALUES
-    ('admin@bikehub.local', '$2b$12$g0EwgQ9AND/K1Yp9rHleAecBImAmcpA9Xjc.88kyh2AFii6pnQ7Fu', 'Quản trị viên', '+84000000001', '1990-01-01', 'ADMIN', 5.0, 'ADMIN-0001', 'ACTIVE'),
-    ('inspector@bikehub.local', '$2b$12$Ipfv0OQrUvK/OFoHLsQnYuwMrNccOuJZJDFV/SkYaHN2E30CCzbvu', 'Người kiểm định', '+84000000002', '1991-01-01', 'INSPECTOR', 5.0, 'INSPECT-0001', 'ACTIVE'),
-    ('user@bikehub.local', '$2b$12$YSiap6KDF6jWLW3YxTF7g.UPy./gZPx5qSjFwpJBp2jbU5y1ciwli', 'Người dùng thử', '+84000000003', '1995-05-05', 'USER', 5.0, NULL, 'ACTIVE');
-
--- Create one verified listing with inspection metadata and wishlist entry
-INSERT INTO listings.listings (seller_id, title, description, price, status, is_verified, verified_by, verified_at)
-VALUES
-    (3, 'Xe đạp đua kiểm định', 'Xe đạp đua đã qua kiểm định chất lượng, phù hợp đua trường.', 12500000.00, 'AVAILABLE', TRUE, 2, CURRENT_TIMESTAMP);
-
-INSERT INTO listings.bicycles (listing_id, brand, model, type, frame_size, frame_material, wheel_size, brake_type, color, manufacture_year, groupset, condition_percent, mileage_km, serial_number, primary_image_url)
-VALUES
-    (1, 'Giant', 'TCR Advanced', 'Road', '54cm', 'Carbon', '700C', 'Disc', 'Đen', 2020, 'Shimano Ultegra', 92, 1200, 'GT-2020-001', '/assets/bike.png');
-
-INSERT INTO inspections.reports (listing_id, inspector_id, technical_details, overall_verdict, is_passed)
-VALUES
-    (1, 2, '{"frame": "Carbon nguyên khối", "brakes": "Đĩa thủy lực", "wheels": "700C alloy", "condition_percent": 92}', 'Kiểm định xong: xe đạt yêu cầu vận hành tốt và an toàn.', TRUE);
-
-INSERT INTO interactions.wishlists (user_id, listing_id)
-VALUES
-    (3, 1);

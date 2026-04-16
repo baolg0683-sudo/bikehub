@@ -60,10 +60,10 @@ def require_role(*allowed_roles):
         def admin_only():
             return jsonify({"message": "Admin access"})
         
-        @app.route('/seller')
-        @require_role('SELLER', 'ADMIN')
-        def seller_access():
-            return jsonify({"message": "Seller or Admin access"})
+        @app.route('/inspector')
+        @require_role('INSPECTOR', 'ADMIN')
+        def inspector_access():
+            return jsonify({"message": "Inspector or Admin access"})
     """
     def decorator(f):
         @wraps(f)

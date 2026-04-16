@@ -12,6 +12,11 @@ class Listing(Base):
     description = Column(Text)
     price = Column(Numeric(15, 2), nullable=False)
     status = Column(String(20), default='PENDING')
+    inspection_status = Column(String(20), default='NONE')
+    inspection_fee = Column(Numeric(10, 2), default=50000)
+    inspection_schedule = Column(DateTime)
+    inspection_notes = Column(Text)
+    is_hidden = Column(Boolean, default=False)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

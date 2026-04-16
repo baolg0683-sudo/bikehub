@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Header from "../components/Layout/Header";
+import HeaderWrapper from "../components/Layout/HeaderWrapper";
 import Footer from "../components/Layout/Footer";
 import { DebugAuth } from "../components/Layout/DebugAuth";
 import { AuthProvider } from "../context/AuthContext";
@@ -25,7 +25,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <ChatProvider>
-            <Header />
+            <HeaderWrapper />
             <main>
               {children}
             </main>

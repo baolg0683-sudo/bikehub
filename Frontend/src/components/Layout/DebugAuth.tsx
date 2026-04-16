@@ -16,15 +16,15 @@ export function DebugAuth() {
 
   const handleClearAuth = () => {
     if (confirm('Xóa toàn bộ auth data?')) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user_data');
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user_data');
       window.location.reload();
     }
   };
 
-  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  const userData = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
+  const accessToken = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
+  const userData = typeof window !== 'undefined' ? sessionStorage.getItem('user_data') : null;
 
   return (
     <div className={styles.debugPanel}>

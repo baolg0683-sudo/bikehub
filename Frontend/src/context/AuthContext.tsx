@@ -12,6 +12,7 @@ export interface UserData {
 
 interface AuthContextValue {
   loggedIn: boolean;
+  initialized: boolean;
   accessToken: string | null;
   user: UserData | null;
   login: (payload: {
@@ -28,14 +29,15 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
     // Only run on client side
     if (typeof window === 'undefined') return;
 
-    const token = localStorage.getItem('access_token');
-    const userData = localStorage.getItem('user_data');
+    const token = sessionStorage.getItem('access_token');
+    const userData = sessionStorage.getItem('user_data');
 
     console.log('[AuthProvider] Initialize: token=%s, userData=%s', !!token, !!userData);
 
@@ -59,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null);
       setUser(null);
     }
+    setInitialized(true);
   }, []);
 
   const login = useCallback(({ access_token, refresh_token, user }: {
@@ -67,9 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: UserData;
   }) => {
     console.log('[AuthProvider] Login called with user:', user);
-    localStorage.setItem('access_token', access_token);
-    localStorage.setItem('refresh_token', refresh_token);
-    localStorage.setItem('user_data', JSON.stringify(user));
+    sessionStorage.setItem('access_token', access_token);
+    sessionStorage.setItem('refresh_token', refresh_token);
+    sessionStorage.setItem('user_data', JSON.stringify(user));
     console.log('[AuthProvider] Tokens stored, setting loggedIn=true');
     setLoggedIn(true);
     setAccessToken(access_token);
@@ -78,15 +81,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = useCallback((user: UserData) => {
     console.log('[AuthProvider] updateUser called with', user);
-    localStorage.setItem('user_data', JSON.stringify(user));
+    sessionStorage.setItem('user_data', JSON.stringify(user));
     setUser(user);
   }, []);
 
   const logout = useCallback(() => {
     console.log('[AuthProvider] Logout called');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_data');
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('user_data');
     console.log('[AuthProvider] Tokens cleared, setting loggedIn=false');
     setLoggedIn(false);
     setAccessToken(null);
@@ -94,8 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ loggedIn, accessToken, user, login, updateUser, logout }),
-    [loggedIn, accessToken, user, login, updateUser, logout]
+    () => ({ loggedIn, initialized, accessToken, user, login, updateUser, logout }),
+    [loggedIn, initialized, accessToken, user, login, updateUser, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

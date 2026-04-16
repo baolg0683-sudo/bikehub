@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FiCheckCircle, FiHeart } from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext";
+import { readWishlist, saveWishlist, WishlistItem } from "../../utils/wishlist";
 import styles from "./ProductGrid.module.css";
 
 interface ProductCardProps {
@@ -42,12 +44,6 @@ interface FilterOption {
   label: string;
 }
 
-interface WishlistItem {
-  listing_id: number;
-  title: string;
-  image: string;
-  price: string;
-}
 
 interface ProductGridFilters {
   q?: string;
@@ -70,8 +66,6 @@ const formatPrice = (value: string) => {
   }
   return number.toLocaleString("vi-VN") + " đ";
 };
-
-const WISHLIST_STORAGE_KEY = 'bikehub_wishlist';
 
 const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, condition, price, isPromoted, isVerified, isWishlisted, onToggleWishlist }) => {
   const router = useRouter();
@@ -129,6 +123,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
   const featuredRef = useRef<HTMLDivElement | null>(null);
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     loadWishlist();
@@ -179,7 +175,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
     };
 
     loadListings();
-  }, [filters, selectedBrand, selectedMaterial, selectedCondition, selectedType]);
+  }, [filters, selectedBrand, selectedMaterial, selectedCondition, selectedType, user]);
 
   const getPrimaryImage = (listing: ListingData) => {
     return listing.images?.[0] || listing.bike_details?.primary_image_url || "/assets/bike.png";
@@ -191,27 +187,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
   };
 
   const getStoredWishlist = (): WishlistItem[] => {
-    if (typeof window === 'undefined') {
-      return [];
-    }
-    const raw = window.localStorage.getItem(WISHLIST_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    try {
-      return JSON.parse(raw) as WishlistItem[];
-    } catch (error) {
-      console.error('[ProductGrid] Failed to parse wishlist', error);
-      return [];
-    }
+    return readWishlist(user?.user_id ?? null);
   };
 
   const saveStoredWishlist = (items: WishlistItem[]) => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    window.localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(items));
-    window.dispatchEvent(new Event('wishlistUpdated'));
+    saveWishlist(user?.user_id ?? null, items);
   };
 
   const loadWishlist = () => {
@@ -222,6 +202,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
   const handleToggleWishlist = (event: React.MouseEvent<HTMLButtonElement>, listing: ListingData) => {
     event.preventDefault();
     event.stopPropagation();
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
     const current = getStoredWishlist();
     const alreadySaved = current.some((item) => item.listing_id === listing.listing_id);

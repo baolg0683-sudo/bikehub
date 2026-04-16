@@ -74,14 +74,14 @@ export default function ManageListingsPage() {
   };
 
   useEffect(() => {
-    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null) ?? "";
+    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null) ?? "";
     if (token) {
       fetchMyListings(token);
     }
   }, [auth.accessToken]);
 
   const handleReload = () => {
-    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null) ?? "";
+    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null) ?? "";
     if (!token) {
       setError("Vui lòng đăng nhập để xem quản lý tin đăng.");
       return;
@@ -90,7 +90,7 @@ export default function ManageListingsPage() {
   };
 
   const handleDelete = async (listingId: number) => {
-    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null) ?? "";
+    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null) ?? "";
     if (!token) {
       setError("Vui lòng đăng nhập để xóa tin đăng.");
       return;
@@ -120,7 +120,7 @@ export default function ManageListingsPage() {
   };
 
   const handleRequestPromotion = async (listingId: number) => {
-    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null) ?? "";
+    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null) ?? "";
     if (!token) {
       setError("Vui lòng đăng nhập để gửi yêu cầu đẩy tin.");
       return;

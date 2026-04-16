@@ -51,16 +51,12 @@ class RoleConfig:
     
     ROLES = {
         'ADMIN': ['read', 'write', 'delete', 'admin'],
-        'SELLER': ['read', 'write', 'sell'],
-        'BUYER': ['read', 'buy'],
         'INSPECTOR': ['read', 'inspect'],
         'USER': ['read'],
     }
     
     ROLE_HIERARCHY = {
-        'ADMIN': ['SELLER', 'BUYER', 'INSPECTOR', 'USER'],
-        'SELLER': ['USER'],
-        'BUYER': ['USER'],
+        'ADMIN': ['INSPECTOR', 'USER'],
         'INSPECTOR': ['USER'],
         'USER': [],
     }

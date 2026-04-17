@@ -16,6 +16,7 @@ class Listing(Base):
     inspection_fee = Column(Numeric(10, 2), default=50000)
     inspection_schedule = Column(DateTime)
     inspection_notes = Column(Text)
+    assigned_inspector_id = Column(Integer, ForeignKey('auth.users.user_id'), nullable=True)
     is_hidden = Column(Boolean, default=False)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

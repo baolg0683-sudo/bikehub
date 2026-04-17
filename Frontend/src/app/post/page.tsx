@@ -35,7 +35,6 @@ function PostBikeForm() {
     color: "",
     groupset: "",
     serial_number: "",
-    condition_percent: "",
     mileage: "",
     price: "",
     description: "",
@@ -114,7 +113,6 @@ function PostBikeForm() {
         color: form.color,
         groupset: form.groupset,
         serial_number: form.serial_number,
-        condition_percent: form.condition_percent,
         mileage_km: form.mileage,
         additional_specs: form.additionalSpecs,
         images: imagePreviews,
@@ -150,7 +148,6 @@ function PostBikeForm() {
         color: "",
         groupset: "",
         serial_number: "",
-        condition_percent: "",
         mileage: "",
         price: "",
         description: "",
@@ -207,7 +204,6 @@ function PostBikeForm() {
           color: listing.bike_details?.color || '',
           groupset: listing.bike_details?.groupset || '',
           serial_number: listing.bike_details?.serial_number || '',
-          condition_percent: listing.bike_details?.condition_percent?.toString() || '',
           mileage: listing.bike_details?.mileage_km?.toString() || '',
           price: listing.price || '',
           description: listing.description || '',
@@ -227,6 +223,9 @@ function PostBikeForm() {
   return (
     <section className={styles.postPage}>
       <form className={styles.postForm} onSubmit={handleSubmit}>
+        <p className={styles.note}>
+          Người dùng không cần nhập % tình trạng xe. Chuyên viên kiểm định sẽ đánh giá chất lượng và cập nhật trạng thái sau khi kiểm định.
+        </p>
         <div className={styles.formGroup}>
           <label htmlFor="title">
             Tiêu đề tin đăng <span className={styles.required}>*</span>
@@ -419,21 +418,6 @@ function PostBikeForm() {
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="condition_percent">
-              Tình trạng (%) <span className={styles.required}>*</span>
-            </label>
-            <input
-              id="condition_percent"
-              value={form.condition_percent}
-              onChange={(event) => handleChange("condition_percent", event.target.value)}
-              placeholder="85"
-              type="number"
-              min="0"
-              max="100"
-              required
-            />
-          </div>
         </div>
 
         <div className={styles.formGroup}>

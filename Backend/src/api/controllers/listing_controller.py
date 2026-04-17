@@ -31,6 +31,16 @@ def serialize_listing(row, db_session, sellers=None, media_by_listing=None, bike
     else:
         bike = db_session.query(Bicycle).filter(Bicycle.listing_id == row.listing_id).first()
 
+    assigned_inspector = None
+    if getattr(row, 'assigned_inspector_id', None):
+        assigned_user = db_session.query(UserModel).filter(UserModel.user_id == row.assigned_inspector_id).first()
+        if assigned_user:
+            assigned_inspector = {
+                "user_id": assigned_user.user_id,
+                "name": assigned_user.full_name or assigned_user.email,
+                "phone": assigned_user.phone,
+            }
+
     return {
         "listing_id": row.listing_id,
         "title": row.title,
@@ -41,6 +51,8 @@ def serialize_listing(row, db_session, sellers=None, media_by_listing=None, bike
         "inspection_fee": str(getattr(row, 'inspection_fee', 50000)),
         "inspection_schedule": row.inspection_schedule.isoformat() if getattr(row, 'inspection_schedule', None) else None,
         "inspection_notes": getattr(row, 'inspection_notes', None),
+        "assigned_inspector_id": getattr(row, 'assigned_inspector_id', None),
+        "assigned_inspector": assigned_inspector,
         "is_hidden": bool(getattr(row, 'is_hidden', False)),
         "is_verified": bool(row.is_verified),
         "seller_id": row.seller_id,
@@ -217,7 +229,6 @@ def create_listing():
         'brake_type',
         'color',
         'manufacture_year',
-        'condition_percent',
         'mileage_km',
     ]
 
@@ -382,6 +393,7 @@ def request_inspection(listing_id):
         return jsonify({"success": False, "message": "Authentication required"}), 401
 
     db = SessionLocal()
+    data = request.get_json() or {}
     try:
         listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == seller_id).first()
         if not listing:
@@ -389,6 +401,10 @@ def request_inspection(listing_id):
 
         if listing.inspection_status in ('REQUESTED', 'SCHEDULED', 'PASSED'):
             return jsonify({"success": False, "message": "Inspection already requested or completed."}), 400
+
+        inspection_location = data.get('inspection_location') or data.get('location')
+        if inspection_location:
+            listing.inspection_notes = f"Khu vực kiểm định: {inspection_location}"
 
         listing.inspection_status = 'REQUESTED'
         listing.inspection_fee = 50000
@@ -418,13 +434,79 @@ def get_pending_listings():
 
     db = SessionLocal()
     try:
-        rows = db.query(Listing).filter(
-            Listing.inspection_status.in_(['REQUESTED', 'SCHEDULED']),
-            Listing.is_hidden == False
-        ).order_by(Listing.created_at.desc()).all()
+        mine = str(request.args.get('mine', '')).lower() in ('1', 'true', 'yes')
+        if mine:
+            rows = db.query(Listing).filter(
+                Listing.inspection_status == 'SCHEDULED',
+                Listing.assigned_inspector_id == int(user.get('user_id')),
+                Listing.is_hidden == False
+            ).order_by(Listing.created_at.desc()).all()
+        else:
+            rows = db.query(Listing).filter(
+                Listing.inspection_status == 'REQUESTED',
+                Listing.assigned_inspector_id == None,
+                Listing.is_hidden == False
+            ).order_by(Listing.created_at.desc()).all()
+
         result = [serialize_listing(r, db) for r in rows]
         return jsonify(result), 200
     except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>/assign-inspector', methods=['POST'])
+@require_auth
+def assign_inspector(listing_id):
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found"}), 404
+
+        if listing.inspection_status != 'REQUESTED' or listing.assigned_inspector_id is not None:
+            return jsonify({"success": False, "message": "Listing is not available for assignment."}), 400
+
+        listing.assigned_inspector_id = int(user.get('user_id'))
+        listing.inspection_status = 'SCHEDULED'
+        db.commit()
+
+        return jsonify(serialize_listing(listing, db)), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/<int:listing_id>/unassign-inspector', methods=['POST'])
+@require_auth
+def unassign_inspector(listing_id):
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    db = SessionLocal()
+    try:
+        listing = db.query(Listing).filter(Listing.listing_id == listing_id).first()
+        if not listing:
+            return jsonify({"success": False, "message": "Listing not found"}), 404
+
+        if listing.assigned_inspector_id != int(user.get('user_id')) or listing.inspection_status != 'SCHEDULED':
+            return jsonify({"success": False, "message": "Không thể hủy lấy kiểm định."}), 400
+
+        listing.assigned_inspector_id = None
+        listing.inspection_status = 'REQUESTED'
+        db.commit()
+
+        return jsonify(serialize_listing(listing, db)), 200
+    except Exception as e:
+        db.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         db.close()
@@ -560,7 +642,8 @@ def update_listing(listing_id):
         return jsonify({"success": False, "message": "Authentication required"}), 401
 
     try:
-        seller_id = int(seller.get('user_id'))
+        user_id = int(seller.get('user_id'))
+        user_role = seller.get('role')
     except (TypeError, ValueError):
         return jsonify({"success": False, "message": "Authentication required"}), 401
 
@@ -580,7 +663,6 @@ def update_listing(listing_id):
         'brake_type',
         'color',
         'manufacture_year',
-        'condition_percent',
         'mileage_km',
     ]
 
@@ -617,7 +699,15 @@ def update_listing(listing_id):
 
     db = SessionLocal()
     try:
-        listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == seller_id).first()
+        if user_role == 'INSPECTOR':
+            listing = db.query(Listing).filter(
+                Listing.listing_id == listing_id,
+                Listing.assigned_inspector_id == user_id,
+                Listing.inspection_status == 'SCHEDULED'
+            ).first()
+        else:
+            listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == user_id).first()
+
         if not listing:
             return jsonify({"success": False, "message": "Listing not found or unauthorized"}), 404
 

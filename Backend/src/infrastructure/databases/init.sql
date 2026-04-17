@@ -40,6 +40,7 @@ CREATE TABLE listings.listings (
     inspection_fee DECIMAL(10, 2) DEFAULT 50000,
     inspection_schedule TIMESTAMP,
     inspection_notes TEXT,
+    assigned_inspector_id INT REFERENCES auth.users(user_id),
     is_hidden BOOLEAN DEFAULT FALSE,
     is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

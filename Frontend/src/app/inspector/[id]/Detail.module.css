@@ -38,6 +38,35 @@
   margin-bottom: 10px;
 }
 
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.chatButton,
+.requestChangeBtn {
+  flex: 1 1 200px;
+  padding: 14px 16px;
+  background-color: #238636;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.requestChangeBtn {
+  background-color: #0d4b86;
+}
+
+.chatButton:hover,
+.requestChangeBtn:hover {
+  background-color: #2ea043;
+}
+
 .card {
   background: rgba(22, 27, 34, 0.75);
   backdrop-filter: blur(10px);
@@ -147,6 +176,116 @@
 
 .rejectBtn:hover {
   background-color: rgba(248, 81, 73, 0.1);
+}
+
+.startInspectionWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin: 20px 0;
+}
+
+.inspectionIntro {
+  max-width: 760px;
+  text-align: center;
+  color: #adbac7;
+}
+
+.inspectionActionsRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.startInspectionBtn,
+.saveBtn,
+.cancelBtn {
+  padding: 13px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+}
+
+.startInspectionBtn,
+.saveBtn {
+  background-color: #238636;
+  color: #ffffff;
+}
+
+.cancelBtn {
+  background-color: #a61d24;
+  color: #ffffff;
+}
+
+.startInspectionBtn:hover,
+.saveBtn:hover,
+.cancelBtn:hover {
+  opacity: 0.95;
+}
+
+.helperText {
+  color: #8b949e;
+  text-align: center;
+  max-width: 680px;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  margin-bottom: 18px;
+  color: #58a6ff;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputField,
+.textareaField {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background-color: #0d1117;
+  color: #c9d1d9;
+}
+
+.textareaField {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.saveMessage {
+  margin-top: 16px;
+  color: #58a6ff;
+  font-weight: 600;
+}
+
+.descriptionBlock {
+  margin-top: 20px;
+}
+
+.cancelBtn {
+  background-color: #8b949e;
 }
 
 .loading {

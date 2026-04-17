@@ -55,6 +55,8 @@ export default function ListingDetailPage() {
   const [error, setError] = useState("");
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const { openConversation } = useChat();
   const { loggedIn, user } = useAuth();
@@ -173,6 +175,23 @@ export default function ListingDetailPage() {
     setIsWishlisted(!alreadySaved);
   };
 
+  const openZoom = (index: number) => {
+    setZoomIndex(index);
+    setZoomOpen(true);
+  };
+
+  const closeZoom = () => {
+    setZoomOpen(false);
+  };
+
+  const showPrevZoom = () => {
+    setZoomIndex((current) => (current - 1 + images.length) % images.length);
+  };
+
+  const showNextZoom = () => {
+    setZoomIndex((current) => (current + 1) % images.length);
+  };
+
   if (loading) {
     return <div className={styles.page}><p className={styles.statusMessage}>Đang tải chi tiết sản phẩm...</p></div>;
   }
@@ -200,8 +219,11 @@ export default function ListingDetailPage() {
 
       <div className={styles.topSection}>
         <div className={styles.gallery}>
-          <div className={styles.mainImageWrapper}>
+          <div className={styles.mainImageWrapper} onClick={() => openZoom(activeImageIndex)}>
             <img src={images[activeImageIndex]} alt={listing.title} className={styles.mainImage} />
+            <button type="button" className={styles.detailZoomButton}>
+              🔍
+            </button>
           </div>
           <div className={styles.thumbnailRow}>
             {images.map((src, index) => (
@@ -215,8 +237,28 @@ export default function ListingDetailPage() {
               </button>
             ))}
           </div>
-        </div>
 
+          {zoomOpen && (
+            <div className={styles.detailImageZoomModal} onClick={closeZoom}>
+              <div className={styles.detailImageZoomContent} onClick={(event) => event.stopPropagation()}>
+                <button type="button" className={styles.detailImageZoomClose} onClick={closeZoom}>
+                  ×
+                </button>
+                <img src={images[zoomIndex]} alt={`Ảnh lớn ${zoomIndex + 1}`} className={styles.detailImageZoomed} />
+                {images.length > 1 && (
+                  <div className={styles.detailImageZoomControls}>
+                    <button type="button" onClick={showPrevZoom} className={styles.detailImageZoomControlButton}>
+                      ‹
+                    </button>
+                    <button type="button" onClick={showNextZoom} className={styles.detailImageZoomControlButton}>
+                      ›
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
         <div className={styles.detailPanel}>
           <div className={styles.detailHeader}>
             <div>

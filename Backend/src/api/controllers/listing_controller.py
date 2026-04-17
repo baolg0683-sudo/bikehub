@@ -230,7 +230,6 @@ def create_listing():
         'brake_type',
         'color',
         'manufacture_year',
-        'mileage_km',
     ]
 
     missing_fields = []
@@ -714,7 +713,6 @@ def update_listing(listing_id):
         'brake_type',
         'color',
         'manufacture_year',
-        'mileage_km',
     ]
 
     missing_fields = []

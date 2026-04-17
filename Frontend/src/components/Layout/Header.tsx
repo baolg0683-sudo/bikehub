@@ -15,6 +15,7 @@ const Header: React.FC = () => {
   const [savedItems, setSavedItems] = useState<{ listing_id: number; title: string }[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isAdminUser = user?.role === 'ADMIN';
+  const isInspectorUser = user?.role === 'INSPECTOR';
 
   const loadSavedWishlist = () => {
     if (!user) {
@@ -99,7 +100,7 @@ const Header: React.FC = () => {
           )}
           {loggedIn && (
             <div className={styles.userSection} ref={dropdownRef}>
-              {!isAdminUser && (
+              {!isAdminUser && !isInspectorUser && (
                 <Link href="/post" className={styles.btnPost}>
                   Đăng tin
                 </Link>
@@ -123,7 +124,7 @@ const Header: React.FC = () => {
                     <FiUser className={styles.dropdownIcon} />
                     <span>Thông tin cá nhân</span>
                   </Link>
-                  {!isAdminUser && (
+                  {!isAdminUser && !isInspectorUser && (
                     <>
                       <Link href="/wishlist" className={styles.dropdownItem}>
                         <FiHeart className={styles.dropdownIcon} />

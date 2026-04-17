@@ -19,6 +19,27 @@ const bikeBrands = [
 
 const frameMaterials = ["Carbon", "Nhôm", "Thép", "Titan", "Hợp kim khác"];
 
+const bikeTypes = [
+  "Road",
+  "Mountain",
+  "Gravel",
+  "Hybrid",
+  "City",
+  "Touring",
+  "E-bike",
+  "BMX",
+  "Khác",
+];
+
+const wheelSizes = [
+  "700c",
+  "29",
+  "27.5",
+  "26",
+  "650b",
+  "Khác",
+];
+
 const brakeTypes = ["Phanh dầu", "Phanh cơ", "Phanh đĩa", "Phanh vành"];
 
 function PostBikeForm() {
@@ -26,16 +47,15 @@ function PostBikeForm() {
     title: "",
     brand: "Giant",
     model: "",
-    type: "",
+    type: "Road",
     year: "",
     frame_size: "",
     frame_material: "Carbon",
-    wheel_size: "",
+    wheel_size: "700c",
     brake_type: "Phanh dầu",
     color: "",
     groupset: "",
     serial_number: "",
-    condition_percent: "",
     mileage: "",
     price: "",
     description: "",
@@ -114,7 +134,6 @@ function PostBikeForm() {
         color: form.color,
         groupset: form.groupset,
         serial_number: form.serial_number,
-        condition_percent: form.condition_percent,
         mileage_km: form.mileage,
         additional_specs: form.additionalSpecs,
         images: imagePreviews,
@@ -141,16 +160,15 @@ function PostBikeForm() {
         title: "",
         brand: "Giant",
         model: "",
-        type: "",
+        type: "Road",
         year: "",
         frame_size: "",
         frame_material: "Carbon",
-        wheel_size: "",
+        wheel_size: "700c",
         brake_type: "Phanh dầu",
         color: "",
         groupset: "",
         serial_number: "",
-        condition_percent: "",
         mileage: "",
         price: "",
         description: "",
@@ -198,16 +216,15 @@ function PostBikeForm() {
           title: listing.title || '',
           brand: listing.bike_details?.brand || 'Giant',
           model: listing.bike_details?.model || '',
-          type: listing.bike_details?.type || '',
+          type: listing.bike_details?.type || 'Road',
           year: listing.bike_details?.manufacture_year?.toString() || '',
           frame_size: listing.bike_details?.frame_size || '',
           frame_material: listing.bike_details?.frame_material || 'Carbon',
-          wheel_size: listing.bike_details?.wheel_size || '',
+          wheel_size: listing.bike_details?.wheel_size || '700c',
           brake_type: listing.bike_details?.brake_type || 'Phanh dầu',
           color: listing.bike_details?.color || '',
           groupset: listing.bike_details?.groupset || '',
           serial_number: listing.bike_details?.serial_number || '',
-          condition_percent: listing.bike_details?.condition_percent?.toString() || '',
           mileage: listing.bike_details?.mileage_km?.toString() || '',
           price: listing.price || '',
           description: listing.description || '',
@@ -227,6 +244,9 @@ function PostBikeForm() {
   return (
     <section className={styles.postPage}>
       <form className={styles.postForm} onSubmit={handleSubmit}>
+        <p className={styles.note}>
+          Người dùng không cần nhập % tình trạng xe. Chuyên viên kiểm định sẽ đánh giá chất lượng và cập nhật trạng thái sau khi kiểm định.
+        </p>
         <div className={styles.formGroup}>
           <label htmlFor="title">
             Tiêu đề tin đăng <span className={styles.required}>*</span>
@@ -276,13 +296,18 @@ function PostBikeForm() {
             <label htmlFor="type">
               Loại xe <span className={styles.required}>*</span>
             </label>
-            <input
+            <select
               id="type"
               value={form.type}
               onChange={(event) => handleChange("type", event.target.value)}
-              placeholder="Road, MTB, Touring..."
               required
-            />
+            >
+              {bikeTypes.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -340,13 +365,18 @@ function PostBikeForm() {
             <label htmlFor="wheel_size">
               Cỡ bánh <span className={styles.required}>*</span>
             </label>
-            <input
+            <select
               id="wheel_size"
               value={form.wheel_size}
               onChange={(event) => handleChange("wheel_size", event.target.value)}
-              placeholder="700c / 29"
               required
-            />
+            >
+              {wheelSizes.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -419,21 +449,6 @@ function PostBikeForm() {
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="condition_percent">
-              Tình trạng (%) <span className={styles.required}>*</span>
-            </label>
-            <input
-              id="condition_percent"
-              value={form.condition_percent}
-              onChange={(event) => handleChange("condition_percent", event.target.value)}
-              placeholder="85"
-              type="number"
-              min="0"
-              max="100"
-              required
-            />
-          </div>
         </div>
 
         <div className={styles.formGroup}>

@@ -60,9 +60,9 @@ class WalletService:
 
             fiat_amount = tx.fiat_amount or Decimal('0.00')
             if bikecoin_amount is None:
-                bikecoin_amount = (fiat_amount / Decimal('1000')).quantize(Decimal('0.01'))
+                bikecoin_amount = fiat_amount.quantize(Decimal('0.01'))
             else:
-                bikecoin_amount = Decimal(bikecoin_amount)
+                bikecoin_amount = Decimal(str(bikecoin_amount))
 
             user = db.query(UserModel).filter(UserModel.user_id == tx.user_id).first()
             if not user:

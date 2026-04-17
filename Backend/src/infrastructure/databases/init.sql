@@ -40,6 +40,7 @@ CREATE TABLE listings.listings (
     inspection_fee DECIMAL(10, 2) DEFAULT 50000,
     inspection_schedule TIMESTAMP,
     inspection_notes TEXT,
+    assigned_inspector_id INT REFERENCES auth.users(user_id),
     is_hidden BOOLEAN DEFAULT FALSE,
     is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -82,6 +83,8 @@ CREATE TABLE wallet.transactions (
     transaction_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES auth.users(user_id),
     amount DECIMAL(15, 2) NOT NULL,
+    fiat_amount DECIMAL(15, 2) DEFAULT 0.00,
+    currency VARCHAR(5) DEFAULT 'B',
     -- TOPUP: Nạp, WITHDRAW: Rút, HOLD: Giam cọc, RELEASE: Trả tiền cho người bán, REFUND: Hoàn cọc
     type VARCHAR(20) NOT NULL, 
     status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED, SUCCESS
@@ -127,6 +130,7 @@ CREATE TABLE inspections.reports (
     listing_id INT REFERENCES listings.listings(listing_id),
     inspector_id INT REFERENCES auth.users(user_id),
     technical_details JSONB, -- Lưu chi tiết kỹ thuật khung, phanh...
+    condition_percent INT CHECK (condition_percent BETWEEN 0 AND 100),
     overall_verdict TEXT,
     scheduled_at TIMESTAMP,
     fee_amount DECIMAL(10, 2) DEFAULT 50000,

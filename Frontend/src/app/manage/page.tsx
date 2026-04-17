@@ -28,7 +28,15 @@ interface ListingData {
   description?: string;
   price: string;
   status: string;
+  inspection_status?: string;
+  inspection_fee?: string;
+  is_verified?: boolean;
   seller_id: number;
+  assigned_inspector?: {
+    user_id: number;
+    name?: string;
+    phone?: string;
+  };
   created_at?: string;
   images: string[];
   bike_details?: BikeDetails;
@@ -41,6 +49,10 @@ export default function ManageListingsPage() {
   const [error, setError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
   const [promotionLoading, setPromotionLoading] = useState<number | null>(null);
+  const [inspectionLoading, setInspectionLoading] = useState<number | null>(null);
+  const [openInspectionRequest, setOpenInspectionRequest] = useState<number | null>(null);
+  const [inspectionLocation, setInspectionLocation] = useState<Record<number, string>>({});
+  const inspectionLocationOptions = ["TP. HCM", "Đà Nẵng", "Hà Nội", "Khác"];
 
   const parseResponse = async (response: Response) => {
     const text = await response.text();
@@ -149,6 +161,48 @@ export default function ManageListingsPage() {
     }
   };
 
+  const handleToggleInspectionRequest = (listingId: number) => {
+    setOpenInspectionRequest((prev) => (prev === listingId ? null : listingId));
+    setInspectionLocation((prev) => ({
+      ...prev,
+      [listingId]: prev[listingId] || inspectionLocationOptions[0],
+    }));
+  };
+
+  const handleRequestInspection = async (listingId: number) => {
+    const token = auth.accessToken ?? (typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null) ?? "";
+    if (!token) {
+      setError("Vui lòng đăng nhập để gửi yêu cầu kiểm định.");
+      return;
+    }
+
+    const selectedLocation = inspectionLocation[listingId] || inspectionLocationOptions[0];
+
+    setError("");
+    setInspectionLoading(listingId);
+
+    try {
+      const response = await fetch(`/api/listings/${listingId}/request-inspection`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inspection_location: selectedLocation }),
+      });
+      const result = await parseResponse(response);
+      if (!response.ok) {
+        throw new Error(result.message || "Không thể gửi yêu cầu kiểm định");
+      }
+      handleReload();
+      setOpenInspectionRequest(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setInspectionLoading(null);
+    }
+  };
+
   if (!auth.loggedIn) {
     return (
       <section className={styles.page}>
@@ -208,12 +262,38 @@ export default function ManageListingsPage() {
                   <div><strong>Khung:</strong> {listing.bike_details?.frame_size || "-"}</div>
                   <div><strong>Phanh:</strong> {listing.bike_details?.brake_type || "-"}</div>
                 </div>
+                {listing.inspection_status && (
+                  <div className={styles.inspectionStatusBar}>
+                    {listing.inspection_status === 'REQUESTED' && 'Đã gửi yêu cầu kiểm định — chờ xử lý'}
+                    {listing.inspection_status === 'SCHEDULED' && 'Đã gửi yêu cầu kiểm định — chờ xử lý'}
+                    {listing.inspection_status === 'PASSED' && 'Đã kiểm định'}
+                    {listing.inspection_status === 'FAILED' && 'Kiểm định không đạt'}
+                  </div>
+                )}
+                {listing.assigned_inspector && (
+                  <div className={styles.inspectorInfo}>
+                    <strong>Nhân viên kiểm định:</strong> {listing.assigned_inspector.name || `#${listing.assigned_inspector.user_id}`}
+                    {listing.assigned_inspector.phone ? ` — ${listing.assigned_inspector.phone}` : ''}
+                  </div>
+                )}
                 <p className={styles.description}>{listing.description || "Chưa có mô tả."}</p>
                 <div className={styles.cardActions}>
                   <Link href={`/post?listingId=${listing.listing_id}`} className={styles.editButton}>
                     Chỉnh sửa
                   </Link>
-                  {listing.status === "PENDING_PROMOTION" ? (
+                  {listing.inspection_status === 'REQUESTED' ? (
+                    <span className={styles.inspectionStatusBadge}>
+                      Đã gửi yêu cầu kiểm định
+                    </span>
+                  ) : listing.inspection_status === 'SCHEDULED' ? (
+                    <span className={styles.inspectionStatusBadge}>
+                      Đã lên lịch kiểm định
+                    </span>
+                  ) : listing.inspection_status === 'PASSED' ? (
+                    <span className={styles.inspectionStatusBadge}>
+                      Đã kiểm định
+                    </span>
+                  ) : listing.status === "PENDING_PROMOTION" ? (
                     <span className={styles.promotionStatus}>
                       Đang chờ duyệt đẩy tin
                     </span>
@@ -227,6 +307,15 @@ export default function ManageListingsPage() {
                       {promotionLoading === listing.listing_id ? "Đang gửi..." : "Đẩy tin"}
                     </button>
                   )}
+                  {!(listing.inspection_status === 'REQUESTED' || listing.inspection_status === 'SCHEDULED' || listing.inspection_status === 'PASSED') && (
+                    <button
+                      type="button"
+                      className={styles.promotionButton}
+                      onClick={() => handleToggleInspectionRequest(listing.listing_id)}
+                    >
+                      Đăng ký kiểm định
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={styles.deleteButton}
@@ -236,6 +325,45 @@ export default function ManageListingsPage() {
                     {deleteLoading === listing.listing_id ? "Đang xóa..." : "Xóa"}
                   </button>
                 </div>
+                {openInspectionRequest === listing.listing_id && (
+                  <div className={styles.inspectionPanel}>
+                    <p className={styles.inspectionNote}>
+                      Phí kiểm định cố định: 50.000 Bikecoin / chiếc.
+                    </p>
+                    <div className={styles.inspectionFormRow}>
+                      <label htmlFor={`inspection_location_${listing.listing_id}`}>Khu vực kiểm định trực tiếp</label>
+                      <select
+                        id={`inspection_location_${listing.listing_id}`}
+                        value={inspectionLocation[listing.listing_id] || inspectionLocationOptions[0]}
+                        onChange={(event) => setInspectionLocation((prev) => ({ ...prev, [listing.listing_id]: event.target.value }))}
+                        className={styles.inspectionLocationSelect}
+                      >
+                        {inspectionLocationOptions.map((location) => (
+                          <option key={location} value={location}>
+                            {location}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className={styles.inspectionPanelActions}>
+                      <button
+                        type="button"
+                        className={styles.inspectionButton}
+                        onClick={() => handleRequestInspection(listing.listing_id)}
+                        disabled={inspectionLoading === listing.listing_id}
+                      >
+                        {inspectionLoading === listing.listing_id ? "Đang gửi..." : "Xác nhận"}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        onClick={() => setOpenInspectionRequest(null)}
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </article>
           ))}

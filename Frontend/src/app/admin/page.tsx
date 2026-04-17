@@ -8,7 +8,7 @@ import styles from './page.module.css';
 
 const navItems = [
   { label: 'Dashboard', href: '/admin' },
-  { label: 'Yêu cầu nạp', href: '/admin' },
+  { label: 'Yêu cầu nạp', href: '/admin/topup-requests' },
   { label: 'Kiểm định', href: '/admin' },
   { label: 'Người dùng', href: '/admin' },
   { label: 'Cài đặt', href: '/admin' },

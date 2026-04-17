@@ -11,6 +11,17 @@
   margin: 0 auto 30px auto;
   border-bottom: 1px solid #30363d;
   padding-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.headerActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .title {
@@ -102,9 +113,16 @@
   flex-grow: 1;
 }
 
+.cardActionWrapper {
+  display: flex;
+  justify-content: center;
+}
+
 .inspectBtn {
-  width: 100%;
-  padding: 12px;
+  width: fit-content;
+  min-width: 180px;
+  padding: 12px 20px;
+  align-self: center;
   background-color: #238636;
   color: white;
   border: none;
@@ -119,6 +137,125 @@
 
 .inspectBtn:hover {
   background-color: #2ea043;
+}
+
+.filterRow {
+  max-width: 1200px;
+  margin: 0 auto 20px auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.section {
+  max-width: 1200px;
+  margin: 0 auto 32px auto;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #c9d1d9;
+}
+
+.toggleViewBtn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  background-color: #0d1117;
+  color: #c9d1d9;
+  border: 1px solid #30363d;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.toggleViewBtn:hover {
+  background-color: #161b22;
+  border-color: #58a6ff;
+}
+
+.activeViewBtn {
+  background-color: #238636;
+  border-color: #238636;
+  color: #ffffff;
+}
+
+.sectionHeader p {
+  margin: 0;
+  color: #8b949e;
+}
+
+.filterLabel {
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.filterSelect {
+  min-width: 180px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background-color: #0d1117;
+  color: #c9d1d9;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.chatButton,
+.infoButton,
+.resultButton {
+  flex: 1 1 140px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.97rem;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+
+.chatButton {
+  background-color: #238636;
+  color: #ffffff;
+}
+
+.chatButton:hover {
+  background-color: #2ea043;
+}
+
+.infoButton {
+  background-color: #0d1117;
+  color: #58a6ff;
+  border: 1px solid #58a6ff;
+}
+
+.infoButton:hover {
+  background-color: rgba(56, 139, 253, 0.08);
+}
+
+.resultButton {
+  background-color: #ad8b00;
+  color: #ffffff;
+}
+
+.resultButton:hover {
+  background-color: #d29922;
 }
 
 .error {

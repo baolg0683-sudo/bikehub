@@ -95,15 +95,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, con
         <h4 className={styles.productTitle}>
           {title}
           {isVerified && (
-            <FiCheckCircle
-              style={{ color: "#1d9bf0", marginLeft: "6px", fontSize: "1.1rem", verticalAlign: "text-bottom" }}
-              title="Xe đã qua kiểm định chất lượng"
-            />
+            <span className={styles.verifiedLabel} title="Xe đã qua kiểm định chất lượng">
+              <FiCheckCircle />
+              Đã kiểm định
+            </span>
           )}
         </h4>
         <p className={styles.productCondition}>
           Tình trạng: <span className={styles.conditionText}>{condition}</span>
         </p>
+        {condition !== "Không rõ" && (
+          <span className={styles.conditionBadge}>{condition}</span>
+        )}
         <div className={styles.productFooter}>
           <p className={styles.productPrice}>{price}</p>
         </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { FiHeart } from "react-icons/fi";
+import { FiCheckCircle, FiHeart } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { readWishlist, saveWishlist, WishlistItem } from "../../../utils/wishlist";
 import { useChat } from "../../../context/ChatContext";
@@ -43,6 +43,7 @@ interface ListingDetail {
   images?: string[];
   bike_details?: BikeDetails;
   seller?: SellerInfo;
+  is_verified?: boolean;
 }
 
 export default function ListingDetailPage() {
@@ -221,6 +222,17 @@ export default function ListingDetailPage() {
             <div>
               <p className={styles.statusTag}>{listing.status}</p>
               <h1 className={styles.title}>{listing.title}</h1>
+              <div className={styles.listingMeta}>
+                {listing.bike_details?.condition_percent != null && (
+                  <span>Độ mới: <strong>{listing.bike_details.condition_percent}%</strong></span>
+                )}
+                {listing.is_verified && (
+                  <span className={styles.verifiedBadge}>
+                    <FiCheckCircle />
+                    Đã kiểm định
+                  </span>
+                )}
+              </div>
             </div>
             <p className={styles.price}>{formatPrice(listing.price)}</p>
           </div>
@@ -293,7 +305,7 @@ export default function ListingDetailPage() {
             </div>
             <div>
               <span>Độ mới</span>
-              <strong>{listing.bike_details?.condition_percent ? `${listing.bike_details.condition_percent}%` : "-"}</strong>
+              <strong>{listing.bike_details?.condition_percent !== undefined && listing.bike_details?.condition_percent !== null ? `${listing.bike_details.condition_percent}%` : "-"}</strong>
             </div>
             <div>
               <span>Quãng đường</span>

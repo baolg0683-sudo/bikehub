@@ -29,6 +29,8 @@ def require_auth(f):
             verify_jwt_in_request()
             user_id = get_jwt_identity()
             claims = get_jwt()
+            if user_id is None:
+                raise ValueError('Missing identity claim in JWT')
             
             g.user = {
                 "user_id": int(user_id) if isinstance(user_id, str) else user_id,
@@ -73,6 +75,8 @@ def require_role(*allowed_roles):
                 user_id = get_jwt_identity()
                 claims = get_jwt()
                 user_role = claims.get('role', 'USER')
+                if user_id is None:
+                    raise ValueError('Missing identity claim in JWT')
                 
                 # Check if user role is in allowed roles
                 if user_role not in allowed_roles:
@@ -88,12 +92,6 @@ def require_role(*allowed_roles):
                     "claims": claims
                 }
                 
-            except Exception as e:
-                return jsonify({
-                    "success": False,
-                    "error": "Unauthorized",
-                    "message": "Invalid token claims"
-                }), 401
             except Exception as e:
                 return jsonify({
                     "success": False,

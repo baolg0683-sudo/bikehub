@@ -258,6 +258,86 @@
   color: #d4443f;
 }
 
+.dropdownSection {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dropdownSectionTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.5rem;
+}
+
+.topUpForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.topUpLabel {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.82rem;
+  color: #334155;
+  gap: 0.25rem;
+}
+
+.topUpInput {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.topUpActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.topUpSubmit,
+.topUpCancel {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+.topUpSubmit {
+  background-color: #d4443f;
+  color: white;
+}
+
+.topUpSubmit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.topUpCancel {
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.topUpMessage {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.topUpSuccess {
+  color: #166534;
+}
+
+.topUpError {
+  color: #b91c1c;
+}
+
 .dropdownEmpty {
   color: #64748b;
   font-size: 0.9rem;

@@ -1,0 +1,159 @@
+.pageShell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  min-height: calc(100vh - 68px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.pageLabel {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: clamp(2rem, 2.5vw, 2.75rem);
+}
+
+.pageSubtitle {
+  margin: 0.75rem 0 0;
+  color: #6b7280;
+  max-width: 640px;
+}
+
+.statsCard {
+  min-width: 180px;
+  padding: 1.25rem;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.statsLabel {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.statsValue {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.panel {
+  background: white;
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.message {
+  padding: 1rem 1.25rem;
+  border-radius: 18px;
+  font-weight: 600;
+}
+
+.success {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+}
+
+.table th,
+.table td {
+  padding: 0.95rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.table th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+}
+
+.bankInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #475569;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.approveButton,
+.rejectButton {
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.approveButton {
+  background: #22c55e;
+  color: white;
+}
+
+.rejectButton {
+  background: #ef4444;
+  color: white;
+}
+
+.approveButton:disabled,
+.rejectButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.emptyState {
+  padding: 2rem;
+  text-align: center;
+  color: #475569;
+}
+
+@media (max-width: 960px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .table {
+    min-width: 720px;
+  }
+}

@@ -11,7 +11,7 @@ wallet_bp = Blueprint('wallet', __name__)
 @require_auth
 def get_wallet_info():
     user = g.get('user')
-    if not user:
+    if not user or user.get('user_id') is None:
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     db = SessionLocal()
@@ -33,7 +33,7 @@ def get_wallet_info():
 @require_auth
 def user_transactions():
     user = g.get('user')
-    if not user:
+    if not user or user.get('user_id') is None:
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     try:
@@ -63,7 +63,7 @@ def user_transactions():
 @require_auth
 def create_topup_request():
     user = g.get('user')
-    if not user:
+    if not user or user.get('user_id') is None:
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     data = request.get_json() or {}

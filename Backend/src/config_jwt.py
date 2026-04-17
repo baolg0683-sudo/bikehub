@@ -28,6 +28,7 @@ class JWTConfig:
     JWT_ACCESS_TOKEN_EXPIRES = ACCESS_TOKEN_EXPIRES
     JWT_REFRESH_TOKEN_EXPIRES = REFRESH_TOKEN_EXPIRES
     JWT_ALGORITHM = ALGORITHM
+    JWT_IDENTITY_CLAIM = 'user_id'
     
     # Token location (where to look for tokens)
     JWT_TOKEN_LOCATION = ['headers', 'cookies', 'json']

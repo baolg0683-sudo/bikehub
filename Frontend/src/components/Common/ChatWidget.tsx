@@ -77,6 +77,8 @@ export function ChatWidget() {
   const isVideoUrl = (url: string) => /\.(mp4|mov|webm|avi|mkv)(\?|$)/i.test(url);
   const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp)(\?|$)/i.test(url);
 
+  const inspectionLabel = user?.role === 'INSPECTOR' ? ' [Kiểm định]' : '';
+
   const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) {
@@ -590,7 +592,7 @@ export function ChatWidget() {
                       onClick={() => selectConversation(conv)}
                     >
                       <div className={styles.conversationItemContent}>
-                        <strong>{conv.listing_title}</strong>
+                        <strong>{conv.listing_title}{inspectionLabel}</strong>
                         <p>{conv.peer_name}</p>
                         <p className={styles.conversationMeta}>{conv.last_message}</p>
                       </div>
@@ -627,7 +629,7 @@ export function ChatWidget() {
                   ) : (
                     <span className={styles.detailTitle}>{conversationTitle}</span>
                   )}
-                  <p className={styles.detailSubtitle}>Đang trò chuyện với: {partnerName}</p>
+                  <p className={styles.detailSubtitle}>Đang trò chuyện với: {partnerName}{inspectionLabel}</p>
                 </div>
               </div>
 
@@ -673,7 +675,7 @@ export function ChatWidget() {
                           </div>
                         )}
                         <p className={styles.messageMeta}>
-                          {fromMe ? "Bạn" : partnerName}
+                          {fromMe ? "Bạn" : partnerName}{inspectionLabel}
                           {message.created_at ? ` • ${new Date(message.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}` : ""}
                         </p>
                       </div>

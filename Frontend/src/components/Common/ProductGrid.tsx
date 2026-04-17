@@ -104,9 +104,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, con
         <p className={styles.productCondition}>
           Tình trạng: <span className={styles.conditionText}>{condition}</span>
         </p>
-        {condition !== "Không rõ" && (
-          <span className={styles.conditionBadge}>{condition}</span>
-        )}
         <div className={styles.productFooter}>
           <p className={styles.productPrice}>{price}</p>
         </div>

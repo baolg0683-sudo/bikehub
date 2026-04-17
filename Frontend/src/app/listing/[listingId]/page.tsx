@@ -223,9 +223,6 @@ export default function ListingDetailPage() {
               <p className={styles.statusTag}>{listing.status}</p>
               <h1 className={styles.title}>{listing.title}</h1>
               <div className={styles.listingMeta}>
-                {listing.bike_details?.condition_percent != null && (
-                  <span>Độ mới: <strong>{listing.bike_details.condition_percent}%</strong></span>
-                )}
                 {listing.is_verified && (
                   <span className={styles.verifiedBadge}>
                     <FiCheckCircle />

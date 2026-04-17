@@ -362,7 +362,11 @@ export default function InspectorDetail() {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: 'FAIL', overall_verdict: 'Không đạt kiểm định.' }),
+        body: JSON.stringify({
+          action: 'FAIL',
+          overall_verdict: 'Không đạt kiểm định.',
+          technical_details: { condition_percent: Number(inspectionCondition) },
+        }),
       });
       if (response.ok) {
         alert('Đã từ chối tin đăng thành công.');

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FiUser, FiLogOut, FiPlus, FiHome } from 'react-icons/fi';
+import { FiUser, FiLogOut, FiPlus, FiHome, FiDollarSign } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import styles from './AdminHeader.module.css';
 
@@ -33,6 +33,9 @@ const AdminHeader: React.FC = () => {
         <div className={styles.actionSection}>
           <Link href="/admin" className={`${styles.actionButton} ${pathname === '/admin' ? styles.active : ''}`}>
             <FiHome /> Dashboard
+          </Link>
+          <Link href="/admin/topup-requests" className={`${styles.actionButton} ${pathname === '/admin/topup-requests' ? styles.active : ''}`}>
+            <FiDollarSign /> Yêu cầu nạp
           </Link>
           <Link href="/admin/add-inspector" className={styles.actionButton}>
             <FiPlus /> Thêm kiểm định

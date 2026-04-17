@@ -10,6 +10,7 @@ class InspectionReport(Base):
     listing_id = Column(Integer, ForeignKey('listings.listings.listing_id'), nullable=False)
     inspector_id = Column(Integer, ForeignKey('auth.users.user_id'), nullable=False)
     technical_details = Column(JSON)
+    condition_percent = Column(Integer)
     overall_verdict = Column(Text)
     scheduled_at = Column(DateTime)
     fee_amount = Column(Numeric(10, 2), default=50000)

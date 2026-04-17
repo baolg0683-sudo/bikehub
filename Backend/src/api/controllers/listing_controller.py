@@ -4,6 +4,7 @@ from infrastructure.databases import SessionLocal, db
 from infrastructure.models.sell.models import Listing, Media, Bicycle
 from infrastructure.models.auth.user_model import UserModel
 from infrastructure.models.inspections.report_model import InspectionReport
+from infrastructure.models.pay.models import WalletTransaction
 from sqlalchemy import or_
 from decimal import Decimal
 from datetime import datetime
@@ -402,19 +403,54 @@ def request_inspection(listing_id):
         if listing.inspection_status in ('REQUESTED', 'SCHEDULED', 'PASSED'):
             return jsonify({"success": False, "message": "Inspection already requested or completed."}), 400
 
+        seller_user = db.query(UserModel).filter(UserModel.user_id == seller_id).first()
+        if not seller_user:
+            return jsonify({"success": False, "message": "Seller user not found."}), 404
+
+        inspection_fee = listing.inspection_fee if listing.inspection_fee is not None else Decimal('50000.00')
+        try:
+            inspection_fee = Decimal(str(inspection_fee))
+        except Exception:
+            inspection_fee = Decimal('50000.00')
+
+        if inspection_fee <= 0:
+            inspection_fee = Decimal('50000.00')
+
+        if seller_user.balance is None or seller_user.balance < inspection_fee:
+            return jsonify({
+                "success": False,
+                "message": "Không đủ số dư để thanh toán phí kiểm định.",
+                "current_balance": str(seller_user.balance or Decimal('0.00')),
+                "required_amount": str(inspection_fee)
+            }), 400
+
         inspection_location = data.get('inspection_location') or data.get('location')
         if inspection_location:
             listing.inspection_notes = f"Khu vực kiểm định: {inspection_location}"
 
+        seller_user.balance = seller_user.balance - inspection_fee
+        listing.inspection_fee = inspection_fee
         listing.inspection_status = 'REQUESTED'
-        listing.inspection_fee = 50000
         listing.status = 'PENDING'
         listing.is_hidden = False
+
+        db.add(WalletTransaction(
+            user_id=seller_id,
+            amount=inspection_fee,
+            fiat_amount=Decimal('0.00'),
+            currency='B',
+            type='INSPECTION_FEE',
+            status='SUCCESS',
+            transfer_note=f'Thanh toán phí kiểm định cho tin đăng {listing_id}',
+            created_at=datetime.utcnow(),
+            processed_at=datetime.utcnow()
+        ))
+
         db.commit()
 
         return jsonify({
             "success": True,
-            "message": "Yêu cầu kiểm định đã được gửi. Phí kiểm định: 50.000đ.",
+            "message": "Yêu cầu kiểm định đã được gửi và phí đã được thanh toán.",
             "inspection_fee": str(listing.inspection_fee)
         }), 200
     except Exception as e:
@@ -585,10 +621,25 @@ def inspect_listing(listing_id):
             listing.is_hidden = True
             listing.inspection_notes = overall_verdict or 'Không đạt kiểm định. Vui lòng liên hệ người kiểm định để điều chỉnh.'
 
+        # Update stored bicycle condition from inspection result so listing UI shows the inspector-entered value
+        condition_value = technical_details.get('condition_percent')
+        if condition_value is not None:
+            try:
+                condition_value_int = int(condition_value)
+            except (ValueError, TypeError):
+                condition_value_int = None
+            if condition_value_int is not None:
+                bicycle = db.query(Bicycle).filter(Bicycle.listing_id == listing_id).first()
+                if not bicycle:
+                    bicycle = Bicycle(listing_id=listing_id)
+                    db.add(bicycle)
+                bicycle.condition_percent = condition_value_int
+
         report = InspectionReport(
             listing_id=listing_id,
             inspector_id=int(user.get('user_id')),
             technical_details=technical_details,
+            condition_percent=condition_value_int,
             overall_verdict=overall_verdict,
             scheduled_at=listing.inspection_schedule,
             fee_amount=listing.inspection_fee,

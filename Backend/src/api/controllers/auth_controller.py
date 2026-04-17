@@ -1,7 +1,7 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token
 from marshmallow import Schema, fields, validate
 import bcrypt
-import jwt
 import datetime
 
 # IMPORT TRỰC TIẾP ĐỐI TƯỢNG DB VÀ MODEL
@@ -97,17 +97,13 @@ def login():
         if not is_valid:
             return jsonify({"message": "Mật khẩu không chính xác"}), 401
 
-        secret_key = current_app.config.get('SECRET_KEY', '1234')
-        payload = {
-            'user_id': user.user_id,
-            'role': user.role,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }
-        token = jwt.encode(payload, secret_key, algorithm="HS256")
+        access_token = create_access_token(identity=user.user_id, additional_claims={
+            'role': user.role
+        })
         
         return jsonify({
             "message": "Đăng nhập thành công",
-            "token": token,
+            "token": access_token,
             "user": {
                 "username": user.username,
                 "role": user.role

@@ -132,6 +132,23 @@ def create_app():
             print(f"[create_app] error while clearing schemas: {e}")
 
         Base.metadata.create_all(bind=db.engine)
+
+        try:
+            if dialect_name in ('postgresql', 'postgres'):
+                with db.engine.begin() as connection:
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS fiat_amount DECIMAL(15, 2) DEFAULT 0.00"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(5) DEFAULT 'B'"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS transfer_note TEXT"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS evidence_url TEXT"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS admin_note TEXT"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS processed_by INT REFERENCES auth.users(user_id)"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS bank_info JSONB"))
+                    connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP"))
+                    connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS fee_amount DECIMAL(10, 2) DEFAULT 50000"))
+                    connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS condition_percent INT"))
+        except Exception as e:
+            print(f"[create_app] warning: could not migrate wallet.transactions or inspections.reports columns: {e}")
+
     
     setup_middleware(app)
     register_routes(app)

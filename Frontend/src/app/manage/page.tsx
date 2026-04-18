@@ -33,6 +33,12 @@ interface ListingData {
   is_verified?: boolean;
   is_hidden?: boolean;
   seller_id: number;
+  active_deposit_order?: {
+    order_id: number;
+    buyer_id: number;
+    buyer_name?: string | null;
+    order_status: string;
+  } | null;
   assigned_inspector?: {
     user_id: number;
     name?: string;
@@ -294,15 +300,18 @@ export default function ManageListingsPage() {
   const renderListingCard = (listing: any) => {
     const isHiddenListing = Boolean(listing.is_hidden || listing.status === 'HIDDEN');
     const isSoldListing = listing.status === 'SOLD';
+    const isReservedListing = listing.status === 'RESERVED';
+    const hasActiveDeposit = Boolean(listing.active_deposit_order) || isReservedListing;
     const isReviewedListing = listing.inspection_status === 'REVIEWED';
     const isPassedListing = listing.inspection_status === 'PASSED';
     const isFailedListing = listing.inspection_status === 'FAILED';
     const isInspectionPending = ['REQUESTED', 'SCHEDULED'].includes(listing.inspection_status);
     const isVerifiedListing = Boolean(listing.is_verified || isPassedListing);
-    const canDelete = !['REQUESTED', 'SCHEDULED', 'PASSED'].includes(listing.inspection_status);
+    const canDelete =
+      !['REQUESTED', 'SCHEDULED', 'PASSED'].includes(listing.inspection_status) && !hasActiveDeposit;
     const showPromotionPending = listing.status === 'PENDING_PROMOTION' && isPassedListing;
     const showInspectionRequest = !isSoldListing && !isVerifiedListing && !isInspectionPending && !isReviewedListing;
-    const showHideButton = isPassedListing && !isSoldListing && !isHiddenListing;
+    const showHideButton = isPassedListing && !isSoldListing && !isHiddenListing && !hasActiveDeposit;
     const showUnhideButton = isHiddenListing && !isSoldListing && !isFailedListing;
 
     return (
@@ -317,10 +326,11 @@ export default function ManageListingsPage() {
             <h2>{listing.title}</h2>
             <div className={styles.statusGroup}>
               <span className={styles.status}>
-                {listing.status === 'AVAILABLE' ? 'Đang hoạt động' :
+                {                listing.status === 'AVAILABLE' ? 'Đang hoạt động' :
                  listing.status === 'PENDING' ? 'Chờ duyệt' :
                  listing.status === 'PENDING_PROMOTION' ? 'Chờ duyệt đẩy tin' :
                  listing.status === 'HIDDEN' ? 'Chờ chỉnh sửa' :
+                 listing.status === 'RESERVED' ? 'Chờ giao dịch (đã đặt cọc)' :
                  listing.status === 'SOLD' ? 'Đã bán' :
                  listing.status}
               </span>
@@ -332,7 +342,9 @@ export default function ManageListingsPage() {
             </div>
           </div>
           <div className={styles.infoRow}>
-            <span className={styles.price}>{listing.price} VND</span>
+            <span className={styles.price}>
+              {Number(listing.price).toLocaleString('vi-VN')} BikeCoin
+            </span>
             <span>{listing.created_at ? new Date(listing.created_at).toLocaleDateString("vi-VN") : "-"}</span>
           </div>
           <div className={styles.detailsGrid}>
@@ -341,6 +353,16 @@ export default function ManageListingsPage() {
             <div><strong>Khung:</strong> {listing.bike_details?.frame_size || "-"}</div>
             <div><strong>Phanh:</strong> {listing.bike_details?.brake_type || "-"}</div>
           </div>
+          {listing.active_deposit_order ? (
+            <div className={styles.inspectionStatusBar} style={{ background: '#1e3a5f', color: '#e0f2fe' }}>
+              Đã được đặt cọc bởi{' '}
+              <strong>
+                {listing.active_deposit_order.buyer_name ||
+                  `Người mua #${listing.active_deposit_order.buyer_id}`}
+              </strong>
+              . Tin không hiển thị trên chợ cho đến khi giao dịch kết thúc hoặc cọc được hoàn/hủy.
+            </div>
+          ) : null}
           {listing.inspection_status && (
             <div className={styles.inspectionStatusBar}>
               {listing.inspection_status === 'REQUESTED' && 'Đã gửi yêu cầu kiểm định — chờ xử lý'}
@@ -358,7 +380,7 @@ export default function ManageListingsPage() {
           )}
           <p className={styles.description}>{listing.description || "Chưa có mô tả."}</p>
           <div className={styles.cardActions}>
-            {listing.status !== 'SOLD' ? (
+            {listing.status !== 'SOLD' && !hasActiveDeposit ? (
               <>
                 <Link href={`/post?listingId=${listing.listing_id}`} className={styles.editButton}>
                   Chỉnh sửa
@@ -374,11 +396,13 @@ export default function ManageListingsPage() {
                   </button>
                 )}
               </>
-            ) : (
+            ) : listing.status === 'SOLD' ? (
               <span className={styles.disabledAction}>Không thể chỉnh sửa</span>
+            ) : (
+              <span className={styles.disabledAction}>Đang có cọc — không thể sửa hoặc xóa tin</span>
             )}
 
-            {isInspectionPending ? (
+            {hasActiveDeposit ? null : isInspectionPending ? (
               <span className={styles.inspectionStatusBadge}>
                 {listing.inspection_status === 'REQUESTED' ? 'Đã gửi yêu cầu kiểm định' : 'Đã lên lịch kiểm định'}
               </span>

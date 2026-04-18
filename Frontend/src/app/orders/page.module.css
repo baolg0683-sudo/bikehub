@@ -1,0 +1,191 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+  color: #0f172a;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+}
+
+.sub {
+  color: #64748b;
+  margin: 0 0 1.5rem;
+}
+
+.tabRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.tab {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tab:hover {
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.tabActive {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: #fff;
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem 1rem;
+  font-size: 0.95rem;
+  color: #475569;
+  margin-bottom: 0.75rem;
+}
+
+.contactBox {
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.btn {
+  border: none;
+  border-radius: 0.65rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btnPrimary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnDanger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.btnGhost {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.btnOutline {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.error {
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 1rem;
+  max-width: 400px;
+  width: 100%;
+  padding: 1.25rem;
+}
+
+.modal h3 {
+  margin: 0 0 0.75rem;
+}
+
+.modal textarea {
+  width: 100%;
+  min-height: 88px;
+  border-radius: 0.65rem;
+  border: 1px solid #cbd5e1;
+  padding: 0.6rem 0.75rem;
+  font-family: inherit;
+  margin-bottom: 0.75rem;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

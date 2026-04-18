@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import adminStyles from './page.module.css';
 
-export type AdminSidebarActive = 'home' | 'topup' | 'withdrawal' | 'bank';
+export type AdminSidebarActive = 'home' | 'topup' | 'withdrawal' | 'bank' | 'disputes';
 
 function linkClass(active: AdminSidebarActive, key: AdminSidebarActive) {
   return `${adminStyles.sidebarLink}${active === key ? ` ${adminStyles.sidebarLinkActive}` : ''}`;
@@ -31,6 +31,9 @@ export function AdminSidebar({ active }: { active: AdminSidebarActive }) {
         </Link>
         <Link href="/admin/bank-verifications" className={linkClass(active, 'bank')}>
           Xác thực ngân hàng
+        </Link>
+        <Link href="/admin/disputes" className={linkClass(active, 'disputes')}>
+          Tranh chấp đơn hàng
         </Link>
         <Link href="/admin" className={adminStyles.sidebarLink}>
           Kiểm định

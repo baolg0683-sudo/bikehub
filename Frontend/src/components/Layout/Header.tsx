@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare, FiHeart } from "react-icons/fi";
+import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare, FiHeart, FiShoppingCart } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { readWishlist } from "../../utils/wishlist";
 import styles from "./Header.module.css";
@@ -209,6 +209,10 @@ const Header: React.FC = () => {
                       <Link href="/manage" className={styles.dropdownItem}>
                         <FiFileText className={styles.dropdownIcon} />
                         <span>Quản lý tin đăng</span>
+                      </Link>
+                      <Link href="/orders" className={styles.dropdownItem}>
+                        <FiShoppingCart className={styles.dropdownIcon} />
+                        <span>Quản lý đơn hàng</span>
                       </Link>
                     </>
                   )}

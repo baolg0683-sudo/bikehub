@@ -61,10 +61,12 @@ def create_app():
 
         try:
             from infrastructure.models.orders.models import Order, DepositEscrow
+            from infrastructure.models.orders.dispute_model import OrderDispute  # noqa: F401
             from infrastructure.models.pay.models import WalletTransaction
         except Exception:
             Order = None
             DepositEscrow = None
+            OrderDispute = None
             WalletTransaction = None
 
         try:
@@ -143,9 +145,27 @@ def create_app():
                     connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS admin_note TEXT"))
                     connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS processed_by INT REFERENCES auth.users(user_id)"))
                     connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS bank_info JSONB"))
+                    try:
+                        connection.execute(text("ALTER TABLE wallet.transactions ALTER COLUMN type TYPE VARCHAR(40)"))
+                    except Exception as ex:
+                        print(f"[create_app] wallet.transactions.type alter: {ex}")
                     connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP"))
                     connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS fee_amount DECIMAL(10, 2) DEFAULT 50000"))
                     connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS condition_percent INT"))
+                    for stmt in (
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS deposit_percent NUMERIC(5, 2)",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS deposit_amount NUMERIC(15, 2)",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS remaining_amount NUMERIC(15, 2)",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS buyer_reject_reason TEXT",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS listing_was_verified BOOLEAN DEFAULT FALSE",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS meeting_confirmed_at TIMESTAMP",
+                    ):
+                        connection.execute(text(stmt))
+                    try:
+                        connection.execute(text("ALTER TABLE orders.orders ALTER COLUMN status TYPE VARCHAR(40)"))
+                    except Exception as ex:
+                        print(f"[create_app] orders.orders status column alter (may already be wide): {ex}")
         except Exception as e:
             print(f"[create_app] warning: could not migrate wallet.transactions or inspections.reports columns: {e}")
 

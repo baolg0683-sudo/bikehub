@@ -413,6 +413,85 @@
   color: #b91c1c;
 }
 
+.purchaseModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.purchaseModal {
+  background: #fff;
+  border-radius: 1rem;
+  max-width: 420px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+}
+
+.purchaseModal h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.purchaseModal p {
+  margin: 0 0 1rem;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.depositOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.depositOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.depositOption:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+
+.depositOption input {
+  accent-color: #2563eb;
+}
+
+.purchaseModalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.purchaseModalError {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.reputationRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-top: 0.35rem;
+}
+
 @media (max-width: 1000px) {
   .topSection,
   .infoSection {

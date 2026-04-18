@@ -13,9 +13,23 @@ type DisputeItem = {
   listing_id: number | null;
   listing_title: string | null;
   description: string;
+  dispute_area?: string | null;
+  dispute_address?: string | null;
   status: string;
   resolution_note?: string | null;
   inspector?: { user_id: number; name: string } | null;
+  buyer?: { user_id: number; name: string; phone?: string } | null;
+  seller?: { user_id: number; name: string; phone?: string } | null;
+};
+
+type PenaltyAction = 'LOCK_ACCOUNT' | 'BAN_ACCOUNT' | 'DEDUCT_REPUTATION';
+type PenaltyProposal = {
+  target_scope: '' | 'BUYER' | 'SELLER' | 'BOTH';
+  actions: PenaltyAction[];
+  ban_permanent: boolean;
+  ban_duration_days: string;
+  reputation_deduction: string;
+  proposal_note: string;
 };
 
 export default function InspectorDisputesPage() {
@@ -26,6 +40,7 @@ export default function InspectorDisputesPage() {
   const [error, setError] = useState('');
   const [savingId, setSavingId] = useState<number | null>(null);
   const [notes, setNotes] = useState<Record<number, string>>({});
+  const [proposals, setProposals] = useState<Record<number, PenaltyProposal>>({});
 
   const load = useCallback(async () => {
     const token = resolveAccessToken(accessToken);
@@ -67,6 +82,7 @@ export default function InspectorDisputesPage() {
       setError('Kết luận tối thiểu 10 ký tự.');
       return;
     }
+    const proposal = proposals[disputeId];
     const token = resolveAccessToken(accessToken);
     if (!token) return;
     setSavingId(disputeId);
@@ -78,7 +94,19 @@ export default function InspectorDisputesPage() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ resolution_note: note }),
+        body: JSON.stringify({
+          resolution_note: note,
+          penalty_proposal: proposal
+            ? {
+                target_scope: proposal.target_scope || null,
+                actions: proposal.actions,
+                ban_permanent: proposal.ban_permanent,
+                ban_duration_days: proposal.ban_duration_days ? Number(proposal.ban_duration_days) : null,
+                reputation_deduction: proposal.reputation_deduction ? Number(proposal.reputation_deduction) : null,
+                proposal_note: proposal.proposal_note.trim() || null,
+              }
+            : undefined,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || 'Không lưu được kết luận.');
@@ -88,6 +116,22 @@ export default function InspectorDisputesPage() {
     } finally {
       setSavingId(null);
     }
+  };
+
+  const defaultProposal = (): PenaltyProposal => ({
+    target_scope: '',
+    actions: [],
+    ban_permanent: false,
+    ban_duration_days: '',
+    reputation_deduction: '',
+    proposal_note: '',
+  });
+
+  const updateProposal = (id: number, updater: (prev: PenaltyProposal) => PenaltyProposal) => {
+    setProposals((prev) => {
+      const base = prev[id] ?? defaultProposal();
+      return { ...prev, [id]: updater(base) };
+    });
   };
 
   if (loading) {
@@ -127,6 +171,10 @@ export default function InspectorDisputesPage() {
                 <div className={styles.cardDetails}>
                   <p>Dispute #{d.dispute_id}</p>
                   <p>Order #{d.order_id}</p>
+                  {d.dispute_area ? <p>Khu vực: {d.dispute_area}</p> : null}
+                  {d.dispute_address ? <p>Địa chỉ: {d.dispute_address}</p> : null}
+                  {d.buyer ? <p>Người mua: {d.buyer.name} · {d.buyer.phone || '-'}</p> : null}
+                  {d.seller ? <p>Người bán: {d.seller.name} · {d.seller.phone || '-'}</p> : null}
                   <p>Mô tả: {d.description}</p>
                 </div>
 

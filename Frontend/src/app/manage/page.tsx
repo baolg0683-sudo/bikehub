@@ -60,7 +60,7 @@ export default function ManageListingsPage() {
   const [openInspectionRequest, setOpenInspectionRequest] = useState<number | null>(null);
   const [inspectionLocation, setInspectionLocation] = useState<Record<number, string>>({});
   const [showHiddenListings, setShowHiddenListings] = useState(false);
-  const inspectionLocationOptions = ["TP. HCM", "Đà Nẵng", "Hà Nội", "Khác"];
+  const inspectionLocationOptions = ["TPHCM", "Đà Nẵng", "Hà Nội"];
 
   const parseResponse = async (response: Response) => {
     const text = await response.text();

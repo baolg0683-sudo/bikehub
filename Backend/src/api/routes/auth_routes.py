@@ -21,6 +21,30 @@ import bcrypt
 auth_endpoints_bp = Blueprint('auth_endpoints', __name__, url_prefix='/api/users')
 
 
+def _user_block_reason(user: UserModel):
+    """Return block reason string when account cannot login, else None."""
+    now = datetime.utcnow()
+    status = (user.status or 'ACTIVE').upper()
+
+    # Auto-unban expired temporary bans.
+    if status == 'BANNED' and not bool(user.banned_permanent) and user.banned_until and user.banned_until <= now:
+        user.status = 'ACTIVE'
+        user.banned_until = None
+        user.banned_permanent = False
+        db.session.commit()
+        return None
+
+    if status == 'LOCKED':
+        return 'Tài khoản đang bị khóa bởi quản trị viên.'
+    if status == 'BANNED':
+        if bool(user.banned_permanent):
+            return 'Tài khoản đã bị cấm vĩnh viễn.'
+        if user.banned_until:
+            return f"Tài khoản bị cấm đến {user.banned_until.isoformat()}."
+        return 'Tài khoản đang bị cấm.'
+    return None
+
+
 @auth_endpoints_bp.route('/check-uniqueness', methods=['POST'])
 def check_uniqueness():
     """
@@ -335,6 +359,7 @@ def create_user():
             }), 400
 
         avatar_url = str(data.get('avatar_url', '')).strip() or None
+        service_area = str(data.get('service_area', '')).strip() or None
         if not avatar_url:
             return jsonify({
                 "success": False,
@@ -400,6 +425,10 @@ def create_user():
         new_user.date_of_birth = date_of_birth  # type: ignore[assignment]
         new_user.avatar_url = avatar_url  # type: ignore[assignment]
         new_user.role = role  # type: ignore[assignment]
+        
+        # Set service area for inspectors
+        if role == 'INSPECTOR' and service_area:
+            new_user.service_area = service_area  # type: ignore[assignment]
 
         db.session.add(new_user)
         db.session.commit()
@@ -411,7 +440,8 @@ def create_user():
                 "user_id": new_user.user_id,
                 "email": new_user.email,
                 "phone": new_user.phone,
-                "role": new_user.role
+                "role": new_user.role,
+                "service_area": new_user.service_area if role == 'INSPECTOR' else None
             }
         }), 201
 
@@ -481,6 +511,14 @@ def login():
                 "message": "Invalid email/phone or password"
             }), 401
 
+        block_reason = _user_block_reason(user)
+        if block_reason:
+            return jsonify({
+                "success": False,
+                "error": "Account blocked",
+                "message": block_reason
+            }), 403
+
         tokens = TokenManager.create_tokens(
             user_id=int(user.user_id),  # type: ignore[arg-type]
             user_role=str(user.role)
@@ -499,7 +537,8 @@ def login():
                     "avatar_url": user.avatar_url,
                     "role": user.role,
                     "reputation_score": user.reputation_score,
-                    "certificate_id": user.certificate_id
+                "certificate_id": user.certificate_id,
+                "service_area": user.service_area or ""
                 }
             }
         }), 200
@@ -536,6 +575,16 @@ def refresh_access_token():
         user_id = get_jwt_identity()
         claims = get_jwt()
         user_role = claims.get('role', 'USER')
+
+        user = db.session.query(UserModel).filter(UserModel.user_id == int(user_id)).first()
+        if user:
+            block_reason = _user_block_reason(user)
+            if block_reason:
+                return jsonify({
+                    "success": False,
+                    "error": "Account blocked",
+                    "message": block_reason
+                }), 403
         
         # Create new access token
         access_token = TokenManager.create_access_token_from_refresh(
@@ -638,6 +687,15 @@ def update_profile():
                     }), 400
         if 'certificate_id' in data:
             user.certificate_id = str(data.get('certificate_id', user.certificate_id or '')).strip()  # type: ignore[assignment]
+        if 'service_area' in data:
+            service_area = str(data.get('service_area', user.service_area or '')).strip()
+            if service_area and len(service_area) < 2:
+                return jsonify({
+                    "success": False,
+                    "error": "Validation error",
+                    "message": "Khu vực hoạt động không hợp lệ"
+                }), 400
+            user.service_area = service_area  # type: ignore[assignment]
         if 'email' in data:
             email = str(data.get('email', user.email or '')).strip().lower()
             if not email or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
@@ -719,7 +777,8 @@ def update_profile():
                 "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
                 "age": age,
                 "reputation_score": user.reputation_score,
-                "certificate_id": user.certificate_id or ""
+                "certificate_id": user.certificate_id or "",
+                "service_area": user.service_area or ""
             }
         }), 200
 
@@ -785,7 +844,8 @@ def get_current_user_info():
                 "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
                 "age": age,
                 "reputation_score": user.reputation_score,
-                "certificate_id": user.certificate_id or ""
+                "certificate_id": user.certificate_id or "",
+                "service_area": user.service_area or ""
             }
         }), 200
         

@@ -162,6 +162,27 @@ def create_app():
                         "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS meeting_confirmed_at TIMESTAMP",
                     ):
                         connection.execute(text(stmt))
+                    for stmt in (
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS banned_until TIMESTAMP",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS banned_permanent BOOLEAN DEFAULT FALSE",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS locked_at TIMESTAMP",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS sanction_note TEXT",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS service_area VARCHAR(120)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_target VARCHAR(16)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_actions VARCHAR(128)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_ban_days INT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_ban_permanent BOOLEAN",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_reputation_deduction FLOAT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_note TEXT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS admin_penalty_applied_at TIMESTAMP",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS admin_penalty_applied_by INT REFERENCES auth.users(user_id)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS admin_penalty_note TEXT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS dispute_area VARCHAR(120)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS dispute_address TEXT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS cancelled_by_user_id INT REFERENCES auth.users(user_id)",
+                    ):
+                        connection.execute(text(stmt))
                     try:
                         connection.execute(text("ALTER TABLE orders.orders ALTER COLUMN status TYPE VARCHAR(40)"))
                     except Exception as ex:

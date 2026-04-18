@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -226,7 +226,12 @@ export default function InspectorDashboard() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Khu Vực Kiểm Định</h1>
-          </div>
+          {user?.service_area && (
+            <p style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.25rem' }}>
+              Khu vực hoạt động: <strong>{user.service_area}</strong>
+            </p>
+          )}
+        </div>
 
         <div className={styles.headerActions}>
           <Link href="/inspector/disputes" className={styles.toggleViewBtn}>
@@ -288,7 +293,6 @@ export default function InspectorDashboard() {
               <option value="tp hcm">TP. HCM</option>
               <option value="hà nội">Hà Nội</option>
               <option value="đà nẵng">Đà Nẵng</option>
-              <option value="khác">Khác</option>
             </select>
           </>
         ) : null}

@@ -57,11 +57,10 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionId, setActionId] = useState<number | null>(null);
-
-  const [rejectOpen, setRejectOpen] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
   const [disputeOpen, setDisputeOpen] = useState<number | null>(null);
   const [disputeText, setDisputeText] = useState("");
+  const [disputeArea, setDisputeArea] = useState("");
+  const [disputeAddress, setDisputeAddress] = useState("");
   const [confirmReceive, setConfirmReceive] = useState<number | null>(null);
   const [orderTab, setOrderTab] = useState<"buy" | "sell">("buy");
 
@@ -174,13 +173,23 @@ export default function OrdersPage() {
     }
   };
 
-  const submitReject = async () => {
-    if (rejectOpen === null) return;
-    setActionId(rejectOpen);
+  const submitDispute = async () => {
+    if (disputeOpen === null) return;
+    if (!disputeArea.trim()) {
+      setError("Vui lòng chọn khu vực trước khi gửi báo cáo.");
+      return;
+    }
+    setActionId(disputeOpen);
     try {
-      await postAction(`/api/orders/${rejectOpen}/reject`, { reason: rejectReason });
-      setRejectOpen(null);
-      setRejectReason("");
+      await postAction(`/api/orders/${disputeOpen}/dispute`, {
+        description: disputeText,
+        area: disputeArea.trim(),
+        address: disputeAddress.trim() || null,
+      });
+      setDisputeOpen(null);
+      setDisputeText("");
+      setDisputeArea("");
+      setDisputeAddress("");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -188,13 +197,11 @@ export default function OrdersPage() {
     }
   };
 
-  const submitDispute = async () => {
-    if (disputeOpen === null) return;
-    setActionId(disputeOpen);
+  const onCancelDispute = async (orderId: number) => {
+    if (!window.confirm("Hủy phiếu tranh chấp? Đơn sẽ quay lại trạng thái chờ giao dịch.")) return;
+    setActionId(orderId);
     try {
-      await postAction(`/api/orders/${disputeOpen}/dispute`, { description: disputeText });
-      setDisputeOpen(null);
-      setDisputeText("");
+      await postAction(`/api/orders/${orderId}/dispute/cancel`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -377,17 +384,6 @@ export default function OrdersPage() {
                           >
                             Đã nhận xe
                           </button>
-                          <button
-                            type="button"
-                            className={`${styles.btn} ${styles.btnDanger}`}
-                            disabled={actionId === o.order_id}
-                            onClick={() => {
-                              setRejectReason("");
-                              setRejectOpen(o.order_id);
-                            }}
-                          >
-                            Từ chối nhận xe
-                          </button>
                           {o.listing_was_verified ? (
                             <button
                               type="button"
@@ -395,6 +391,8 @@ export default function OrdersPage() {
                               disabled={actionId === o.order_id}
                               onClick={() => {
                                 setDisputeText("");
+                                setDisputeArea("");
+                                setDisputeAddress("");
                                 setDisputeOpen(o.order_id);
                               }}
                             >
@@ -408,8 +406,7 @@ export default function OrdersPage() {
                         </>
                       ) : (
                         <span style={{ fontSize: "0.85rem", color: "#64748b", alignSelf: "center" }}>
-                          Chờ người bán xác nhận đã hẹn lịch giao dịch để dùng &quot;Đã nhận xe&quot;, &quot;Từ chối nhận
-                          xe&quot; và báo cáo tranh chấp.
+                          Chờ người bán xác nhận đã hẹn lịch giao dịch
                         </span>
                       )}
                       <button
@@ -418,9 +415,20 @@ export default function OrdersPage() {
                         disabled={actionId === o.order_id}
                         onClick={() => void onCancel(o.order_id)}
                       >
-                        Hủy cọc (hoàn BikeCoin)
+                        Hủy cọc - Từ chối nhận xe
                       </button>
                     </>
+                  ) : null}
+
+                  {isBuyer && o.status === "DISPUTE_OPEN" ? (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnGhost}`}
+                      disabled={actionId === o.order_id}
+                      onClick={() => void onCancelDispute(o.order_id)}
+                    >
+                      Hủy tranh chấp (quay lại chờ giao dịch)
+                    </button>
                   ) : null}
 
                   {isSeller &&
@@ -433,6 +441,8 @@ export default function OrdersPage() {
                       disabled={actionId === o.order_id}
                       onClick={() => {
                         setDisputeText("");
+                        setDisputeArea("");
+                        setDisputeAddress("");
                         setDisputeOpen(o.order_id);
                       }}
                     >
@@ -470,38 +480,32 @@ export default function OrdersPage() {
         </div>
       ) : null}
 
-      {rejectOpen !== null ? (
-        <div className={styles.modalOverlay} onClick={() => !actionId && setRejectOpen(null)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3>Từ chối nhận xe</h3>
-            <p style={{ color: "#475569", fontSize: "0.9rem" }}>
-              Mô tả ngắn gọn lý do (tối thiểu 5 ký tự). BikeCoin cọc sẽ được hoàn về ví.
-            </p>
-            <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Ví dụ: Không khớp mô tả / kiểm định..." />
-            <div className={styles.modalActions}>
-              <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={() => setRejectOpen(null)} disabled={!!actionId}>
-                Hủy
-              </button>
-              <button
-                type="button"
-                className={`${styles.btn} ${styles.btnDanger}`}
-                disabled={!!actionId}
-                onClick={() => void submitReject()}
-              >
-                Gửi
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {disputeOpen !== null ? (
         <div className={styles.modalOverlay} onClick={() => !actionId && setDisputeOpen(null)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3>Báo cáo tranh chấp</h3>
             <p style={{ color: "#475569", fontSize: "0.9rem" }}>
-              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự.
+              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự. 
             </p>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>
+              Khu vực <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <select
+              value={disputeArea}
+              onChange={(e) => setDisputeArea(e.target.value)}
+              style={{ width: "100%" }}
+            >
+              <option value="">Chọn khu vực</option>
+              <option value="TPHCM">TPHCM</option>
+              <option value="Đà Nẵng">Đà Nẵng</option>
+              <option value="Hà Nội">Hà Nội</option>
+            </select>
+            <input
+              value={disputeAddress}
+              onChange={(e) => setDisputeAddress(e.target.value)}
+              placeholder="Địa chỉ cụ thể để kiểm định viên liên hệ (tùy chọn)"
+              style={{ width: "100%" }}
+            />
             <textarea value={disputeText} onChange={(e) => setDisputeText(e.target.value)} placeholder="Mô tả tranh chấp..." />
             <div className={styles.modalActions}>
               <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={() => setDisputeOpen(null)} disabled={!!actionId}>

@@ -23,9 +23,28 @@ CREATE TABLE auth.users (
     balance DECIMAL(15, 2) DEFAULT 0.00,
     reputation_score FLOAT DEFAULT 5.0,
     certificate_id VARCHAR(50),
+    service_area VARCHAR(120),
     status VARCHAR(20) DEFAULT 'ACTIVE',
+    banned_until DATE,
+    banned_permanent BOOLEAN DEFAULT FALSE,
+    locked_at TIMESTAMP,
+    sanction_note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE auth.user_bank_info (
+    bank_info_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE UNIQUE,
+    bank_name VARCHAR(100) NOT NULL,
+    account_number VARCHAR(20) NOT NULL,
+    account_holder VARCHAR(100) NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, VERIFIED, REJECTED
+    admin_note VARCHAR(500),
+    verified_by INT REFERENCES auth.users(user_id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    verified_at TIMESTAMP
+);
+
 -----------------------------------------------------------
 -- 2. LISTING SERVICE
 -----------------------------------------------------------
@@ -66,7 +85,6 @@ CREATE TABLE listings.bicycles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
 CREATE TABLE listings.media (
     media_id SERIAL PRIMARY KEY,
     listing_id INT REFERENCES listings.listings(listing_id) ON DELETE CASCADE,
@@ -81,56 +99,34 @@ CREATE TABLE listings.media (
 -----------------------------------------------------------
 CREATE TABLE wallet.transactions (
     transaction_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES auth.users(user_id),
+    user_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
     amount DECIMAL(15, 2) NOT NULL,
     fiat_amount DECIMAL(15, 2) DEFAULT 0.00,
     currency VARCHAR(5) DEFAULT 'B',
     -- TOPUP: Nạp, WITHDRAW: Rút, HOLD: Giam cọc, RELEASE: Trả tiền cho người bán, REFUND: Hoàn cọc
-    type VARCHAR(20) NOT NULL, 
+    type VARCHAR(20) NOT NULL,
     status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED, SUCCESS
-    
+
     -- Dữ liệu cho Admin đối soát chuyển khoản
     bank_info JSONB, -- {bank_name, account_number, account_holder}
+    transfer_note TEXT,
     evidence_url TEXT, -- Link ảnh bill chuyển khoản
     admin_note TEXT,
     processed_by INT REFERENCES auth.users(user_id), -- Admin xử lý lệnh
-    
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMP
 );
 
 -----------------------------------------------------------
--- 4. ORDER & ESCROW SERVICE (Giao dịch trung gian)
------------------------------------------------------------
-CREATE TABLE orders.orders (
-    order_id SERIAL PRIMARY KEY,
-    listing_id INT REFERENCES listings.listings(listing_id),
-    buyer_id INT REFERENCES auth.users(user_id),
-    seller_id INT REFERENCES auth.users(user_id),
-    status VARCHAR(20) DEFAULT 'WAITING_FOR_DEPOSIT', -- WAITING, PAID_DEPOSIT, COMPLETED, CANCELLED
-    final_price DECIMAL(15, 2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Bảng ký quỹ: Nơi tiền "tạm trú" khi chưa hoàn tất đơn hàng
-CREATE TABLE orders.deposit_escrow (
-    escrow_id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders.orders(order_id) ON DELETE CASCADE,
-    wallet_tx_id INT REFERENCES wallet.transactions(transaction_id), -- Link tới lệnh 'HOLD' trong ví
-    amount DECIMAL(15, 2) NOT NULL,
-    status VARCHAR(20) DEFAULT 'HELD_BY_SYSTEM', -- HELD_BY_SYSTEM, RELEASED, REFUNDED
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
------------------------------------------------------------
--- 5. INSPECTION & INTERACTION
+-- 4. INSPECTIONS SERVICE (Báo cáo kiểm định)
 -----------------------------------------------------------
 CREATE TABLE inspections.reports (
     report_id SERIAL PRIMARY KEY,
-    listing_id INT REFERENCES listings.listings(listing_id),
+    listing_id INT REFERENCES listings.listings(listing_id) ON DELETE CASCADE,
     inspector_id INT REFERENCES auth.users(user_id),
-    technical_details JSONB, -- Lưu chi tiết kỹ thuật khung, phanh...
-    condition_percent INT CHECK (condition_percent BETWEEN 0 AND 100),
+    technical_details JSONB,
+    condition_percent INT,
     overall_verdict TEXT,
     scheduled_at TIMESTAMP,
     fee_amount DECIMAL(10, 2) DEFAULT 50000,
@@ -138,22 +134,79 @@ CREATE TABLE inspections.reports (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-----------------------------------------------------------
+-- 5. INTERACTIONS SERVICE (Chat & Đánh giá)
+-----------------------------------------------------------
 CREATE TABLE interactions.messages (
     message_id SERIAL PRIMARY KEY,
-    sender_id INT REFERENCES auth.users(user_id),
-    receiver_id INT REFERENCES auth.users(user_id),
-    listing_id INT REFERENCES listings.listings(listing_id),
+    sender_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    receiver_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    listing_id INT REFERENCES listings.listings(listing_id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    attachments JSONB DEFAULT '[]',
+    attachments JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE interactions.reviews (
     review_id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders.orders(order_id),
-    reviewer_id INT REFERENCES auth.users(user_id),
-    target_id INT REFERENCES auth.users(user_id),
-    rating INT CHECK (rating BETWEEN 1 AND 5),
+    order_id INT REFERENCES orders.orders(order_id) ON DELETE CASCADE,
+    reviewer_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    target_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    rating INT,
     comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-----------------------------------------------------------
+-- 6. ORDERS SERVICE (Đơn hàng & Ký quỹ)
+-----------------------------------------------------------
+CREATE TABLE orders.orders (
+    order_id SERIAL PRIMARY KEY,
+    listing_id INT REFERENCES listings.listings(listing_id) ON DELETE CASCADE,
+    buyer_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    seller_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    status VARCHAR(40) DEFAULT 'AWAITING_DEPOSIT',
+    final_price DECIMAL(15, 2),
+    deposit_percent DECIMAL(5, 2),
+    deposit_amount DECIMAL(15, 2),
+    remaining_amount DECIMAL(15, 2),
+    buyer_reject_reason TEXT,
+    listing_was_verified BOOLEAN DEFAULT FALSE,
+    meeting_confirmed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE orders.deposit_escrow (
+    escrow_id SERIAL PRIMARY KEY,
+    order_id INT REFERENCES orders.orders(order_id) ON DELETE CASCADE,
+    wallet_tx_id INT REFERENCES wallet.transactions(transaction_id),
+    amount DECIMAL(15, 2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'HELD_BY_SYSTEM',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE orders.order_disputes (
+    dispute_id SERIAL PRIMARY KEY,
+    order_id INT REFERENCES orders.orders(order_id) ON DELETE CASCADE,
+    opened_by_user_id INT REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    description TEXT NOT NULL,
+    status VARCHAR(24) DEFAULT 'OPEN',
+    inspector_id INT REFERENCES auth.users(user_id),
+    resolution_note TEXT,
+    dispute_area VARCHAR(120),
+    dispute_address TEXT,
+    penalty_target VARCHAR(16), -- BUYER, SELLER, BOTH
+    penalty_actions VARCHAR(128), -- CSV: LOCK_ACCOUNT,BAN_ACCOUNT,DEDUCT_REPUTATION
+    penalty_ban_days INT,
+    penalty_ban_permanent BOOLEAN DEFAULT FALSE,
+    penalty_reputation_deduction FLOAT,
+    penalty_note TEXT,
+    admin_penalty_applied_at TIMESTAMP,
+    admin_penalty_applied_by INT REFERENCES auth.users(user_id),
+    admin_penalty_note TEXT,
+    cancelled_at TIMESTAMP,
+    cancelled_by_user_id INT REFERENCES auth.users(user_id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
 );

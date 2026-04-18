@@ -347,16 +347,27 @@ class OrderService:
             db.close()
 
     @staticmethod
-    def open_dispute(order_id: int, user_id: int, description: str):
+    def open_dispute(order_id: int, user_id: int, description: str, *, area=None, address=None):
         db = SessionLocal()
         try:
             order = db.query(Order).filter(Order.order_id == order_id).first()
             if not order or user_id not in (order.buyer_id, order.seller_id):
                 raise ValueError('Không có quyền báo cáo đơn này')
+            
+            # Kiểm tra xem đã tồn tại tranh chấp chưa (không bị hủy)
+            existing_dispute = db.query(OrderDispute).filter(
+                OrderDispute.order_id == order_id,
+                OrderDispute.cancelled_at == None
+            ).first()
+            if existing_dispute:
+                raise ValueError('Đơn này đã có phiếu tranh chấp - chờ xử lý')
+            
             if order.status not in ('DEPOSIT_HELD', 'SELLER_CONFIRMED_HANDOVER'):
                 raise ValueError('Trạng thái đơn không áp dụng báo cáo')
             if order.status == 'DEPOSIT_HELD' and order.meeting_confirmed_at is None:
                 raise ValueError('Cần người bán xác nhận đã hẹn lịch giao dịch trước khi mở tranh chấp')
+            if order.status == 'DISPUTE_OPEN':
+                raise ValueError('Đơn đang tranh chấp — vui lòng đợi xử lý')
 
             if not order.listing_was_verified:
                 raise ValueError(
@@ -368,17 +379,54 @@ class OrderService:
             if len(desc) < 10:
                 raise ValueError('Mô tả tranh chấp ít nhất 10 ký tự')
 
+            area = (area or '').strip()
+            if not area:
+                raise ValueError('Khu vực là bắt buộc')
+            
+            address = (address or '').strip() or None
+
             d = OrderDispute(
                 order_id=order_id,
                 opened_by_user_id=user_id,
                 description=desc,
                 status='OPEN',
+                dispute_area=area,
+                dispute_address=address,
             )
             db.add(d)
             order.status = 'DISPUTE_OPEN'
             db.commit()
             db.refresh(d)
             return d
+        except Exception as e:
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+
+    @staticmethod
+    def cancel_dispute(order_id: int, user_id: int):
+        """Hủy phiếu tranh chấp bởi người đã tạo phiếu; trả đơn về chờ giao dịch."""
+        db = SessionLocal()
+        try:
+            order = db.query(Order).filter(Order.order_id == order_id).first()
+            if not order or user_id not in (order.buyer_id, order.seller_id):
+                raise ValueError('Đơn không hợp lệ')
+            dispute = db.query(OrderDispute).filter(OrderDispute.order_id == order_id).order_by(OrderDispute.dispute_id.desc()).first()
+            if not dispute or dispute.status not in ('OPEN', 'ASSIGNED'):
+                raise ValueError('Không có phiếu tranh chấp đang mở')
+            if dispute.opened_by_user_id != user_id:
+                raise ValueError('Chỉ người tạo phiếu mới có quyền hủy')
+
+            dispute.status = 'CANCELLED'
+            dispute.cancelled_at = datetime.utcnow()
+            dispute.cancelled_by_user_id = user_id
+            # Trả về trạng thái chờ giao dịch (sau đặt cọc).
+            if order.status == 'DISPUTE_OPEN':
+                order.status = 'DEPOSIT_HELD'
+            db.commit()
+            db.refresh(order)
+            return order
         except Exception as e:
             db.rollback()
             raise e

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, Date, Text, Numeric, func
+from sqlalchemy import Column, Integer, String, DateTime, Float, Date, Text, Numeric, Boolean, func
 from infrastructure.databases import db
 
 class UserModel(db.Model):
@@ -16,5 +16,10 @@ class UserModel(db.Model):
     balance = Column(Numeric(15, 2), default=0.00)
     reputation_score = Column(Float, default=5.0)
     certificate_id = Column(String(50))
+    service_area = Column(String(120), nullable=True)
     status = Column(String(20), default='ACTIVE')
+    banned_until = Column(DateTime, nullable=True)
+    banned_permanent = Column(Boolean, default=False)
+    locked_at = Column(DateTime, nullable=True)
+    sanction_note = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())

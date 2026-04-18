@@ -11,6 +11,7 @@ interface ProfileData {
   phone?: string;
   avatar_url?: string;
   role?: string;
+  service_area?: string | null;
 }
 
 export default function InspectorProfilePage() {
@@ -146,6 +147,12 @@ export default function InspectorProfilePage() {
             <span>Chức vụ</span>
             <strong>{profile.role || 'INSPECTOR'}</strong>
           </div>
+          {profile.service_area && (
+            <div className={styles.profileRow}>
+              <span>Khu vực hoạt động</span>
+              <strong>{profile.service_area}</strong>
+            </div>
+          )}
 
           <div className={styles.passwordSection}>
             <div className={styles.passwordHeader}>

@@ -2,10 +2,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List, Optional
 from flask import Blueprint, request, jsonify, g
+from sqlalchemy import func
 from api.middleware.auth import require_auth, require_role
 from infrastructure.databases import SessionLocal
 from infrastructure.models.orders.dispute_model import OrderDispute
 from infrastructure.models.orders.models import Order
+from infrastructure.models.pay.models import WalletTransaction
 from infrastructure.models.sell.models import Listing
 from infrastructure.models.auth.user_model import UserModel
 from services.order_service import OrderService
@@ -354,6 +356,47 @@ def admin_list_disputes():
             q = q.filter(OrderDispute.status == status_filter)
         disputes = q.all()
         return jsonify([_serialize_dispute(d, db) for d in disputes]), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        db.close()
+
+
+@order_bp.route('/orders/admin-summary', methods=['GET'])
+@require_role('ADMIN')
+def admin_summary():
+    db = SessionLocal()
+    try:
+        users_total = db.query(func.count(UserModel.user_id)).scalar() or 0
+        inspectors_total = db.query(func.count(UserModel.user_id)).filter(UserModel.role == 'INSPECTOR').scalar() or 0
+        orders_total = db.query(func.count(Order.order_id)).scalar() or 0
+        completed_orders = db.query(func.count(Order.order_id)).filter(Order.status == 'COMPLETED').scalar() or 0
+        total_revenue = db.query(func.coalesce(func.sum(Order.final_price), 0)).scalar() or 0
+        revenue_last_30d = db.query(func.coalesce(func.sum(Order.final_price), 0)).filter(
+            Order.status == 'COMPLETED',
+            Order.created_at >= datetime.utcnow() - timedelta(days=30),
+        ).scalar() or 0
+        active_disputes = db.query(func.count(OrderDispute.dispute_id)).filter(OrderDispute.status.in_(['OPEN', 'ASSIGNED'])).scalar() or 0
+        pending_topup_requests = db.query(func.count(WalletTransaction.transaction_id)).filter(
+            WalletTransaction.type == 'TOPUP_REQUEST',
+            WalletTransaction.status == 'PENDING',
+        ).scalar() or 0
+        pending_withdrawal_requests = db.query(func.count(WalletTransaction.transaction_id)).filter(
+            WalletTransaction.type == 'WITHDRAWAL_REQUEST',
+            WalletTransaction.status == 'PENDING',
+        ).scalar() or 0
+
+        return jsonify({
+            'users_total': int(users_total),
+            'inspectors_total': int(inspectors_total),
+            'orders_total': int(orders_total),
+            'completed_orders': int(completed_orders),
+            'total_revenue': str(total_revenue),
+            'revenue_last_30d': str(revenue_last_30d),
+            'active_disputes': int(active_disputes),
+            'pending_topup_requests': int(pending_topup_requests),
+            'pending_withdrawal_requests': int(pending_withdrawal_requests),
+        }), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
     finally:

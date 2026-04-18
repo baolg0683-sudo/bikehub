@@ -3,10 +3,14 @@
 import Link from 'next/link';
 import adminStyles from './page.module.css';
 
-export type AdminSidebarActive = 'home' | 'topup' | 'withdrawal' | 'bank' | 'disputes';
+export type AdminSidebarActive = 'home' | 'topup' | 'withdrawal' | 'bank' | 'disputes' | 'users' | 'settings';
 
-function linkClass(active: AdminSidebarActive, key: AdminSidebarActive) {
-  return `${adminStyles.sidebarLink}${active === key ? ` ${adminStyles.sidebarLinkActive}` : ''}`;
+function getLinkClass(active: AdminSidebarActive, key: AdminSidebarActive): string {
+  const classes = [adminStyles.sidebarLink];
+  if (active === key) {
+    classes.push(adminStyles.sidebarLinkActive);
+  }
+  return classes.join(' ');
 }
 
 export function AdminSidebar({ active }: { active: AdminSidebarActive }) {
@@ -20,28 +24,25 @@ export function AdminSidebar({ active }: { active: AdminSidebarActive }) {
         </div>
       </div>
       <nav className={adminStyles.sidebarNav}>
-        <Link href="/admin" className={linkClass(active, 'home')}>
+        <Link href="/admin" className={getLinkClass(active, 'home')}>
           Dashboard
         </Link>
-        <Link href="/admin/topup-requests" className={linkClass(active, 'topup')}>
+        <Link href="/admin/topup-requests" className={getLinkClass(active, 'topup')}>
           Yêu cầu nạp tiền
         </Link>
-        <Link href="/admin/withdrawal-requests" className={linkClass(active, 'withdrawal')}>
+        <Link href="/admin/withdrawal-requests" className={getLinkClass(active, 'withdrawal')}>
           Yêu cầu rút tiền
         </Link>
-        <Link href="/admin/bank-verifications" className={linkClass(active, 'bank')}>
+        <Link href="/admin/bank-verifications" className={getLinkClass(active, 'bank')}>
           Xác thực ngân hàng
         </Link>
-        <Link href="/admin/disputes" className={linkClass(active, 'disputes')}>
+        <Link href="/admin/disputes" className={getLinkClass(active, 'disputes')}>
           Tranh chấp đơn hàng
         </Link>
-        <Link href="/admin" className={adminStyles.sidebarLink}>
-          Kiểm định
-        </Link>
-        <Link href="/admin" className={adminStyles.sidebarLink}>
+        <Link href="/admin/users" className={getLinkClass(active, 'users')}>
           Người dùng
         </Link>
-        <Link href="/admin" className={adminStyles.sidebarLink}>
+        <Link href="/admin/settings" className={getLinkClass(active, 'settings')}>
           Cài đặt
         </Link>
       </nav>

@@ -228,7 +228,7 @@ export default function InspectorDashboard() {
           <h1 className={styles.title}>Khu Vực Kiểm Định</h1>
           {user?.service_area && (
             <p style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.25rem' }}>
-              Khu vực phục vụ: <strong>{user.service_area}</strong>
+              Khu vực hoạt động: <strong>{user.service_area}</strong>
             </p>
           )}
         </div>

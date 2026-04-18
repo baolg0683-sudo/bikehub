@@ -353,9 +353,12 @@ class OrderService:
             order = db.query(Order).filter(Order.order_id == order_id).first()
             if not order or user_id not in (order.buyer_id, order.seller_id):
                 raise ValueError('Không có quyền báo cáo đơn này')
-            # Chỉ cho 1 phía mở phiếu: người mua.
-            if user_id != order.buyer_id:
-                raise ValueError('Chỉ người mua có thể tạo phiếu tranh chấp')
+            
+            # Kiểm tra xem đã tồn tại tranh chấp chưa
+            existing_dispute = db.query(OrderDispute).filter(OrderDispute.order_id == order_id).first()
+            if existing_dispute:
+                raise ValueError('Đơn này đã có phiếu tranh chấp - chờ xử lý')
+            
             if order.status not in ('DEPOSIT_HELD', 'SELLER_CONFIRMED_HANDOVER'):
                 raise ValueError('Trạng thái đơn không áp dụng báo cáo')
             if order.status == 'DEPOSIT_HELD' and order.meeting_confirmed_at is None:
@@ -373,7 +376,10 @@ class OrderService:
             if len(desc) < 10:
                 raise ValueError('Mô tả tranh chấp ít nhất 10 ký tự')
 
-            area = (area or '').strip() or None
+            area = (area or '').strip()
+            if not area:
+                raise ValueError('Khu vực là bắt buộc')
+            
             address = (address or '').strip() or None
 
             d = OrderDispute(

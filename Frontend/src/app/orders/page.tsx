@@ -175,11 +175,15 @@ export default function OrdersPage() {
 
   const submitDispute = async () => {
     if (disputeOpen === null) return;
+    if (!disputeArea.trim()) {
+      setError("Vui lòng chọn khu vực trước khi gửi báo cáo.");
+      return;
+    }
     setActionId(disputeOpen);
     try {
       await postAction(`/api/orders/${disputeOpen}/dispute`, {
         description: disputeText,
-        area: disputeArea.trim() || null,
+        area: disputeArea.trim(),
         address: disputeAddress.trim() || null,
       });
       setDisputeOpen(null);
@@ -437,6 +441,8 @@ export default function OrdersPage() {
                       disabled={actionId === o.order_id}
                       onClick={() => {
                         setDisputeText("");
+                        setDisputeArea("");
+                        setDisputeAddress("");
                         setDisputeOpen(o.order_id);
                       }}
                     >
@@ -479,8 +485,11 @@ export default function OrdersPage() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3>Báo cáo tranh chấp</h3>
             <p style={{ color: "#475569", fontSize: "0.9rem" }}>
-              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự.
+              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự. <strong style={{ color: '#e11d48' }}>Khu vực là bắt buộc</strong>.
             </p>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>
+              Khu vực <span style={{ color: '#e11d48' }}>*</span>
+            </label>
             <select
               value={disputeArea}
               onChange={(e) => setDisputeArea(e.target.value)}

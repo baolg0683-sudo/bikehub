@@ -26,6 +26,7 @@ export default function AddInspectorPage() {
   const [checkingUniqueness, setCheckingUniqueness] = useState({ email: false, phone: false });
   const debounceTimers = useRef<{ email?: NodeJS.Timeout; phone?: NodeJS.Timeout }>({});
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const [serviceArea, setServiceArea] = useState('');
 
   const validateEmail = (value: string) => {
@@ -350,7 +351,7 @@ export default function AddInspectorPage() {
                 {dateOfBirthError && <p className={styles.fieldError}>{dateOfBirthError}</p>}
               </label>
               <label className={styles.fieldLabel}>
-                Khu vực phục vụ
+                Khu vực hoạt động
                 <select
                   className={styles.inputField}
                   value={serviceArea}

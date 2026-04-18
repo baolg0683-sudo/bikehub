@@ -434,7 +434,7 @@ export default function ProfilePage() {
                   </div>
                   {profile.role === 'INSPECTOR' && profile.service_area ? (
                     <div className={styles.infoRow}>
-                      <span>Khu vực phục vụ</span>
+                      <span>Khu vực hoạt động</span>
                       <span><strong>{profile.service_area}</strong></span>
                     </div>
                   ) : null}

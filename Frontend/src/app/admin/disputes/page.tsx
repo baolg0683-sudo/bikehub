@@ -15,12 +15,26 @@ type DisputeItem = {
   listing_id: number | null;
   listing_title: string | null;
   description: string;
+  dispute_area?: string | null;
+  dispute_address?: string | null;
   status: string;
   created_at: string | null;
   resolved_at: string | null;
   resolution_note: string | null;
   opened_by?: { user_id: number; name: string };
   inspector?: { user_id: number; name: string; phone?: string; certificate_id?: string | null } | null;
+  buyer?: { user_id: number; name: string; status?: string; reputation_score?: number; banned_until?: string | null; banned_permanent?: boolean } | null;
+  seller?: { user_id: number; name: string; status?: string; reputation_score?: number; banned_until?: string | null; banned_permanent?: boolean } | null;
+  penalty_proposal?: {
+    target_scope?: 'BUYER' | 'SELLER' | 'BOTH' | null;
+    actions?: Array<'LOCK_ACCOUNT' | 'DEDUCT_REPUTATION' | 'BAN_ACCOUNT'>;
+    ban_duration_days?: number | null;
+    ban_permanent?: boolean | null;
+    reputation_deduction?: number | null;
+    proposal_note?: string | null;
+  } | null;
+  admin_penalty_applied_at?: string | null;
+  admin_penalty_note?: string | null;
 };
 
 type Inspector = {
@@ -28,7 +42,10 @@ type Inspector = {
   name: string;
   phone?: string;
   certificate_id?: string | null;
+  service_area?: string | null;
 };
+
+type PenaltyAction = 'LOCK_ACCOUNT' | 'DEDUCT_REPUTATION';
 
 export default function AdminDisputesPage() {
   const { loggedIn, initialized, user, accessToken } = useAuth();
@@ -39,7 +56,11 @@ export default function AdminDisputesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [areaFilter, setAreaFilter] = useState('');
   const [assigningId, setAssigningId] = useState<number | null>(null);
+  const [applyingPenaltyId, setApplyingPenaltyId] = useState<number | null>(null);
   const [assignInspectorId, setAssignInspectorId] = useState<Record<number, string>>({});
+  const [penaltyDraft, setPenaltyDraft] = useState<
+    Record<number, { target_scope: '' | 'BUYER' | 'SELLER' | 'BOTH'; actions: PenaltyAction[]; ban_permanent: boolean; ban_duration_days: string; reputation_deduction: string; admin_note: string }>
+  >({});
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const token = resolveAccessToken(accessToken);
@@ -72,6 +93,20 @@ export default function AdminDisputesPage() {
         }
       });
       setAssignInspectorId(initialMap);
+      const draftMap: Record<number, { target_scope: '' | 'BUYER' | 'SELLER' | 'BOTH'; actions: PenaltyAction[]; ban_permanent: boolean; ban_duration_days: string; reputation_deduction: string; admin_note: string }> = {};
+      disputeList.forEach((d: DisputeItem) => {
+        const p = d.penalty_proposal;
+        const proposalActions = (p?.actions || []).map((a) => (a === 'BAN_ACCOUNT' ? 'LOCK_ACCOUNT' : a));
+        draftMap[d.dispute_id] = {
+          target_scope: (p?.target_scope || '') as '' | 'BUYER' | 'SELLER' | 'BOTH',
+          actions: proposalActions.filter((a) => a === 'LOCK_ACCOUNT' || a === 'DEDUCT_REPUTATION') as PenaltyAction[],
+          ban_permanent: Boolean(p?.ban_permanent),
+          ban_duration_days: p?.ban_duration_days ? String(p.ban_duration_days) : '',
+          reputation_deduction: p?.reputation_deduction ? String(p.reputation_deduction) : '',
+          admin_note: '',
+        };
+      });
+      setPenaltyDraft(draftMap);
     } catch (err) {
       setMessage({
         type: 'error',
@@ -100,7 +135,7 @@ export default function AdminDisputesPage() {
     const needle = areaFilter.trim().toLowerCase();
     if (!needle) return inspectors;
     return inspectors.filter((i) =>
-      `${i.name || ''} ${i.certificate_id || ''}`.toLowerCase().includes(needle)
+      `${i.service_area || ''} ${i.name || ''} ${i.certificate_id || ''}`.toLowerCase().includes(needle)
     );
   }, [inspectors, areaFilter]);
 
@@ -133,6 +168,72 @@ export default function AdminDisputesPage() {
       });
     } finally {
       setAssigningId(null);
+    }
+  };
+
+  const updateDraft = (
+    disputeId: number,
+    updater: (prev: {
+      target_scope: '' | 'BUYER' | 'SELLER' | 'BOTH';
+      actions: PenaltyAction[];
+      ban_permanent: boolean;
+      ban_duration_days: string;
+      reputation_deduction: string;
+      admin_note: string;
+    }) => {
+      target_scope: '' | 'BUYER' | 'SELLER' | 'BOTH';
+      actions: PenaltyAction[];
+      ban_permanent: boolean;
+      ban_duration_days: string;
+      reputation_deduction: string;
+      admin_note: string;
+    }
+  ) => {
+    setPenaltyDraft((prev) => ({
+      ...prev,
+      [disputeId]: updater(
+        prev[disputeId] || {
+          target_scope: '',
+          actions: [],
+          ban_permanent: false,
+          ban_duration_days: '',
+          reputation_deduction: '',
+          admin_note: '',
+        }
+      ),
+    }));
+  };
+
+  const applyPenalty = async (disputeId: number) => {
+    if (!token) return;
+    const draft = penaltyDraft[disputeId];
+    if (!draft) return;
+    setApplyingPenaltyId(disputeId);
+    setMessage(null);
+    try {
+      const res = await fetch(`http://localhost:9999/api/orders/disputes/${disputeId}/apply-penalty`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          target_scope: draft.target_scope || null,
+          actions: draft.actions,
+          ban_permanent: draft.ban_permanent,
+          ban_duration_days: draft.ban_duration_days ? Number(draft.ban_duration_days) : null,
+          reputation_deduction: draft.reputation_deduction ? Number(draft.reputation_deduction) : null,
+          admin_note: draft.admin_note || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Áp dụng án phạt thất bại.');
+      setMessage({ type: 'success', text: `Đã áp dụng án phạt cho tranh chấp #${disputeId}.` });
+      await loadData();
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Áp dụng án phạt thất bại.' });
+    } finally {
+      setApplyingPenaltyId(null);
     }
   };
 
@@ -236,6 +337,18 @@ export default function AdminDisputesPage() {
                       <dt className={styles.detailDt}>Mô tả</dt>
                       <dd className={styles.detailDd}>{d.description}</dd>
                     </div>
+                    {d.dispute_area ? (
+                      <div className={styles.detailRow}>
+                        <dt className={styles.detailDt}>Khu vực</dt>
+                        <dd className={styles.detailDd}>{d.dispute_area}</dd>
+                      </div>
+                    ) : null}
+                    {d.dispute_address ? (
+                      <div className={styles.detailRow}>
+                        <dt className={styles.detailDt}>Địa chỉ</dt>
+                        <dd className={styles.detailDd}>{d.dispute_address}</dd>
+                      </div>
+                    ) : null}
                     {d.inspector ? (
                       <div className={styles.detailRow}>
                         <dt className={styles.detailDt}>Đã giao</dt>
@@ -244,10 +357,36 @@ export default function AdminDisputesPage() {
                         </dd>
                       </div>
                     ) : null}
+                    {d.buyer ? (
+                      <div className={styles.detailRow}>
+                        <dt className={styles.detailDt}>Người mua</dt>
+                        <dd className={styles.detailDd}>
+                          {d.buyer.name} · {d.buyer.status || 'ACTIVE'} · ⭐ {Number(d.buyer.reputation_score || 0).toFixed(1)}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {d.seller ? (
+                      <div className={styles.detailRow}>
+                        <dt className={styles.detailDt}>Người bán</dt>
+                        <dd className={styles.detailDd}>
+                          {d.seller.name} · {d.seller.status || 'ACTIVE'} · ⭐ {Number(d.seller.reputation_score || 0).toFixed(1)}
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
 
                   {d.status !== 'RESOLVED' ? (
                     <div className={styles.cardActions}>
+                      {d.dispute_area ? (
+                        <button
+                          type="button"
+                          className={styles.btnReject}
+                          onClick={() => setAreaFilter(d.dispute_area || '')}
+                          style={{ minWidth: '170px' }}
+                        >
+                          Lọc khu vực: {d.dispute_area}
+                        </button>
+                      ) : null}
                       <select
                         value={assignInspectorId[d.dispute_id] || ''}
                         onChange={(e) =>
@@ -257,9 +396,11 @@ export default function AdminDisputesPage() {
                         style={{ minWidth: '170px' }}
                       >
                         <option value="">Chọn inspector</option>
-                        {filteredInspectors.map((i) => (
+                        {filteredInspectors
+                          .filter((i) => !d.dispute_area || (i.service_area || '').toLowerCase() === (d.dispute_area || '').toLowerCase())
+                          .map((i) => (
                           <option key={i.user_id} value={i.user_id}>
-                            {i.name} {i.certificate_id ? `- ${i.certificate_id}` : ''}
+                            {i.name} {i.service_area ? `- ${i.service_area}` : ''} {i.certificate_id ? `(${i.certificate_id})` : ''}
                           </option>
                         ))}
                       </select>
@@ -273,7 +414,110 @@ export default function AdminDisputesPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className={styles.inlineBannerSuccess}>Đã xử lý: {d.resolution_note || 'N/A'}</div>
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                      <div className={styles.inlineBannerSuccess}>Đã xử lý: {d.resolution_note || 'N/A'}</div>
+                      <div style={{ border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px', background: '#f8fafc' }}>
+                        <strong style={{ display: 'block', marginBottom: '8px' }}>Áp dụng án phạt</strong>
+                        <select
+                          value={penaltyDraft[d.dispute_id]?.target_scope || ''}
+                          onChange={(e) =>
+                            updateDraft(d.dispute_id, (p) => ({ ...p, target_scope: e.target.value as '' | 'BUYER' | 'SELLER' | 'BOTH' }))
+                          }
+                          style={{ width: '100%', marginBottom: '8px' }}
+                        >
+                          <option value="">Chọn đối tượng</option>
+                          <option value="BUYER">Người mua</option>
+                          <option value="SELLER">Người bán</option>
+                          <option value="BOTH">Cả 2 bên</option>
+                        </select>
+                        <label style={{ display: 'block' }}>
+                          <input
+                            type="checkbox"
+                            checked={(penaltyDraft[d.dispute_id]?.actions || []).includes('LOCK_ACCOUNT')}
+                            onChange={(e) =>
+                              updateDraft(d.dispute_id, (p) => ({
+                                ...p,
+                                actions: e.target.checked
+                                  ? ([...new Set([...p.actions, 'LOCK_ACCOUNT'])] as PenaltyAction[])
+                                  : (p.actions.filter((a) => a !== 'LOCK_ACCOUNT') as PenaltyAction[]),
+                                ban_permanent: e.target.checked ? p.ban_permanent : false,
+                                ban_duration_days: e.target.checked ? p.ban_duration_days : '',
+                              }))
+                            }
+                          />{' '}
+                          Khóa tài khoản
+                        </label>
+                        {(penaltyDraft[d.dispute_id]?.actions || []).includes('LOCK_ACCOUNT') ? (
+                          <div style={{ display: 'flex', gap: '8px', margin: '6px 0' }}>
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={!!penaltyDraft[d.dispute_id]?.ban_permanent}
+                                onChange={(e) =>
+                                  updateDraft(d.dispute_id, (p) => ({
+                                    ...p,
+                                    ban_permanent: e.target.checked,
+                                    ban_duration_days: e.target.checked ? '' : p.ban_duration_days,
+                                  }))
+                                }
+                              />{' '}
+                              Khóa vĩnh viễn
+                            </label>
+                            {!penaltyDraft[d.dispute_id]?.ban_permanent ? (
+                              <input
+                                value={penaltyDraft[d.dispute_id]?.ban_duration_days || ''}
+                                onChange={(e) => updateDraft(d.dispute_id, (p) => ({ ...p, ban_duration_days: e.target.value }))}
+                                placeholder="Số ngày khóa"
+                              />
+                            ) : null}
+                          </div>
+                        ) : null}
+                        <label style={{ display: 'block' }}>
+                          <input
+                            type="checkbox"
+                            checked={(penaltyDraft[d.dispute_id]?.actions || []).includes('DEDUCT_REPUTATION')}
+                            onChange={(e) =>
+                              updateDraft(d.dispute_id, (p) => ({
+                                ...p,
+                                actions: e.target.checked
+                                  ? ([...new Set([...p.actions, 'DEDUCT_REPUTATION'])] as PenaltyAction[])
+                                  : (p.actions.filter((a) => a !== 'DEDUCT_REPUTATION') as PenaltyAction[]),
+                              }))
+                            }
+                          />{' '}
+                          Trừ điểm sao uy tín
+                        </label>
+                        {(penaltyDraft[d.dispute_id]?.actions || []).includes('DEDUCT_REPUTATION') ? (
+                          <input
+                            value={penaltyDraft[d.dispute_id]?.reputation_deduction || ''}
+                            onChange={(e) => updateDraft(d.dispute_id, (p) => ({ ...p, reputation_deduction: e.target.value }))}
+                            placeholder="Mức trừ sao (ví dụ 1)"
+                            style={{ width: '100%', marginTop: '6px' }}
+                          />
+                        ) : null}
+                        <textarea
+                          value={penaltyDraft[d.dispute_id]?.admin_note || ''}
+                          onChange={(e) => updateDraft(d.dispute_id, (p) => ({ ...p, admin_note: e.target.value }))}
+                          placeholder="Ghi chú của admin (tùy chọn)"
+                          style={{ width: '100%', minHeight: '64px', marginTop: '8px' }}
+                        />
+                        <button
+                          type="button"
+                          className={styles.btnApprove}
+                          onClick={() => void applyPenalty(d.dispute_id)}
+                          disabled={applyingPenaltyId === d.dispute_id}
+                          style={{ marginTop: '8px' }}
+                        >
+                          {applyingPenaltyId === d.dispute_id ? 'Đang áp dụng...' : 'Áp dụng án phạt'}
+                        </button>
+                        {d.admin_penalty_applied_at ? (
+                          <div style={{ marginTop: '6px', color: '#166534' }}>
+                            Đã áp dụng lúc: {new Date(d.admin_penalty_applied_at).toLocaleString('vi-VN')}
+                            {d.admin_penalty_note ? ` · Ghi chú: ${d.admin_penalty_note}` : ''}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
                   )}
                 </article>
               ))}

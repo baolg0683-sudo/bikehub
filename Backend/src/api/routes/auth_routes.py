@@ -359,6 +359,7 @@ def create_user():
             }), 400
 
         avatar_url = str(data.get('avatar_url', '')).strip() or None
+        service_area = str(data.get('service_area', '')).strip() or None
         if not avatar_url:
             return jsonify({
                 "success": False,
@@ -424,6 +425,10 @@ def create_user():
         new_user.date_of_birth = date_of_birth  # type: ignore[assignment]
         new_user.avatar_url = avatar_url  # type: ignore[assignment]
         new_user.role = role  # type: ignore[assignment]
+        
+        # Set service area for inspectors
+        if role == 'INSPECTOR' and service_area:
+            new_user.service_area = service_area  # type: ignore[assignment]
 
         db.session.add(new_user)
         db.session.commit()
@@ -435,7 +440,8 @@ def create_user():
                 "user_id": new_user.user_id,
                 "email": new_user.email,
                 "phone": new_user.phone,
-                "role": new_user.role
+                "role": new_user.role,
+                "service_area": new_user.service_area if role == 'INSPECTOR' else None
             }
         }), 201
 

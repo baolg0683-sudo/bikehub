@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -288,7 +288,6 @@ export default function InspectorDashboard() {
               <option value="tp hcm">TP. HCM</option>
               <option value="hà nội">Hà Nội</option>
               <option value="đà nẵng">Đà Nẵng</option>
-              <option value="khác">Khác</option>
             </select>
           </>
         ) : null}

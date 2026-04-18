@@ -402,8 +402,7 @@ export default function OrdersPage() {
                         </>
                       ) : (
                         <span style={{ fontSize: "0.85rem", color: "#64748b", alignSelf: "center" }}>
-                          Chờ người bán xác nhận đã hẹn lịch giao dịch để dùng &quot;Đã nhận xe&quot; và báo cáo tranh
-                          chấp.
+                          Chờ người bán xác nhận đã hẹn lịch giao dịch
                         </span>
                       )}
                       <button
@@ -482,12 +481,16 @@ export default function OrdersPage() {
             <p style={{ color: "#475569", fontSize: "0.9rem" }}>
               Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự.
             </p>
-            <input
+            <select
               value={disputeArea}
               onChange={(e) => setDisputeArea(e.target.value)}
-              placeholder="Khu vực hiện tại (ví dụ: HCM, Hà Nội...)"
               style={{ width: "100%" }}
-            />
+            >
+              <option value="">Chọn khu vực</option>
+              <option value="TPHCM">TPHCM</option>
+              <option value="Đà Nẵng">Đà Nẵng</option>
+              <option value="Hà Nội">Hà Nội</option>
+            </select>
             <input
               value={disputeAddress}
               onChange={(e) => setDisputeAddress(e.target.value)}

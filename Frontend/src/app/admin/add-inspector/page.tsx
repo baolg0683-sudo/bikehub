@@ -26,7 +26,7 @@ export default function AddInspectorPage() {
   const [checkingUniqueness, setCheckingUniqueness] = useState({ email: false, phone: false });
   const debounceTimers = useRef<{ email?: NodeJS.Timeout; phone?: NodeJS.Timeout }>({});
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [serviceArea, setServiceArea] = useState('');
 
   const validateEmail = (value: string) => {
     if (!value) return 'Email là bắt buộc.';
@@ -266,6 +266,7 @@ export default function AddInspectorPage() {
           date_of_birth: dateOfBirth,
           avatar_url: avatarDataUrl,
           role: 'INSPECTOR',
+          service_area: serviceArea,
         }),
       });
 
@@ -347,6 +348,19 @@ export default function AddInspectorPage() {
                   aria-invalid={!!dateOfBirthError}
                 />
                 {dateOfBirthError && <p className={styles.fieldError}>{dateOfBirthError}</p>}
+              </label>
+              <label className={styles.fieldLabel}>
+                Khu vực phục vụ
+                <select
+                  className={styles.inputField}
+                  value={serviceArea}
+                  onChange={(e) => setServiceArea(e.target.value)}
+                >
+                  <option value="">Chọn khu vực</option>
+                  <option value="TPHCM">TPHCM</option>
+                  <option value="Đà Nẵng">Đà Nẵng</option>
+                  <option value="Hà Nội">Hà Nội</option>
+                </select>
               </label>
               <label className={styles.fieldLabel}>
                 Mật khẩu

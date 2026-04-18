@@ -226,8 +226,7 @@ export default function InspectorDashboard() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Khu Vực Kiểm Định</h1>
-          <p className={styles.subtitle}>Danh sách kiểm định, danh sách chờ duyệt và lịch sử các xe bạn đã xử lý</p>
-        </div>
+          </div>
 
         <div className={styles.headerActions}>
           <button

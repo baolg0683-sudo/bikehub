@@ -65,6 +65,11 @@ function PostBikeForm() {
   const [status, setStatus] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [listingVerified, setListingVerified] = useState(false);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+  const [zoomIndex, setZoomIndex] = useState<number>(0);
+  const [isZoomOpen, setIsZoomOpen] = useState<boolean>(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const listingId = searchParams.get("listingId");
@@ -77,6 +82,10 @@ function PostBikeForm() {
   const handleChange = (field: string, value: string) => {
     if (isFieldDisabled(field)) return;
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const formatPrice = (price: string) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(price));
   };
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,8 +127,6 @@ function PostBikeForm() {
     setImagePreviews((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-<<<<<<< Updated upstream
-=======
   const handleDragStart = (index: number, event: React.DragEvent<HTMLDivElement>) => {
     setDraggedImageIndex(index);
     event.dataTransfer.effectAllowed = "move";
@@ -200,7 +207,6 @@ function PostBikeForm() {
   const previewDescription = form.description || "Mô tả chi tiết sản phẩm sẽ hiển thị ở đây.";
   const previewPrice = form.price ? formatPrice(form.price) : "Giá bán";
 
->>>>>>> Stashed changes
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("Đang gửi...");
@@ -334,7 +340,6 @@ function PostBikeForm() {
 
   return (
     <section className={styles.postPage}>
-<<<<<<< Updated upstream
       <form className={styles.postForm} onSubmit={handleSubmit}>
         <p className={styles.note}>
           Người dùng không cần nhập % tình trạng xe. Chuyên viên kiểm định sẽ đánh giá chất lượng và cập nhật trạng thái sau khi kiểm định.
@@ -369,16 +374,16 @@ function PostBikeForm() {
                 </option>
               ))}
             </select>
-=======
+          </div>
+        </div>
       <div className={styles.postContent}>
-        <form className={styles.postForm} onSubmit={handleSubmit}>
-          <div className={styles.previewPanel}>
-            <div className={styles.previewHeader}>
-              <h2>Xem trước danh sách</h2>
-              <p>Nhập đầy đủ thông tin trực tiếp vào thẻ xem trước, click vào khung ảnh để chọn nhiều ảnh.</p>
-              <p className={styles.imageRequiredNote}>
-                Dấu <span className={styles.required}>(*)</span> là bắt buộc. Vui lòng cung cấp đầy đủ thông tin!
-              </p>
+        <div className={styles.previewPanel}>
+          <div className={styles.previewHeader}>
+            <h2>Xem trước danh sách</h2>
+            <p>Nhập đầy đủ thông tin trực tiếp vào thẻ xem trước, click vào khung ảnh để chọn nhiều ảnh.</p>
+            <p className={styles.imageRequiredNote}>
+              Dấu <span className={styles.required}>(*)</span> là bắt buộc. Vui lòng cung cấp đầy đủ thông tin!
+            </p>
               {isEditLocked && (
                 <div className={styles.formStatus}>
                   Tin này đã được xác minh. Nhưng bạn có thể chỉnh sửa giá và mô tả để tìm người mua dễ dàng hơn.
@@ -683,15 +688,7 @@ function PostBikeForm() {
               </div>
             </div>
 
-            <button type="submit" className={styles.submitButton}>
-              {editMode ? (isEditLocked ? 'Cập nhật giá và mô tả' : 'Cập nhật tin đăng') : 'Gửi tin đăng'}
-            </button>
-
-            {status && <div className={styles.formStatus}>{status}</div>}
->>>>>>> Stashed changes
-          </div>
-
-          <div className={styles.formGroup}>
+          <div className={styles.formInputs}>
             <label htmlFor="model">
               Model / Dòng xe <span className={styles.required}>*</span>
             </label>
@@ -928,6 +925,7 @@ function PostBikeForm() {
         </button>
 
         {status && <div className={styles.formStatus}>{status}</div>}
+        </div>
       </form>
     </section>
   );

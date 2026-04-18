@@ -55,6 +55,12 @@
   background: #374151;
 }
 
+.sidebarLinkActive {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.35);
+}
+
 .mainContent {
   flex: 1;
   display: flex;

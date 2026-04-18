@@ -1,6 +1,10 @@
 ﻿import os
 import logging
 from dotenv import load_dotenv
+
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+
 from create_app import create_app
 
 load_dotenv()

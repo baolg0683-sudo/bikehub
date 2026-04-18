@@ -9,6 +9,8 @@ import styles from './page.module.css';
 const navItems = [
   { label: 'Dashboard', href: '/admin' },
   { label: 'Yêu cầu nạp', href: '/admin/topup-requests' },
+  { label: 'Yêu cầu rút tiền', href: '/admin/withdrawal-requests' },
+  { label: 'Xác thực ngân hàng', href: '/admin/bank-verifications' },
   { label: 'Kiểm định', href: '/admin' },
   { label: 'Người dùng', href: '/admin' },
   { label: 'Cài đặt', href: '/admin' },

@@ -8,24 +8,16 @@ import { AdminSidebar } from '../AdminSidebar';
 import adminStyles from '../page.module.css';
 import styles from '../bank-verifications/bank-verifications.module.css';
 
-type TopUpRequest = {
+type WithdrawalRequest = {
   transaction_id: number;
   user_id: number;
   user_full_name?: string;
-  fiat_amount: string;
+  amount: string;
+  fiat_amount?: string;
   currency: string;
   type: string;
   status: string;
-  transfer_note: string;
-  bank_info: Record<string, unknown> | null;
-  evidence_url: string | null;
   created_at: string | null;
-};
-
-const BANK_LABELS: Record<string, string> = {
-  bank_name: 'Ngân hàng',
-  account_number: 'Số tài khoản',
-  account_holder: 'Chủ tài khoản',
 };
 
 function userInitials(name: string | undefined, userId: number): string {
@@ -39,21 +31,10 @@ function userInitials(name: string | undefined, userId: number): string {
   return `U${userId % 100}`;
 }
 
-function formatBankRows(bank: Record<string, unknown> | null): { key: string; label: string; value: string }[] {
-  if (!bank || typeof bank !== 'object') return [];
-  return Object.entries(bank)
-    .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
-    .map(([key, value]) => ({
-      key,
-      label: BANK_LABELS[key] || key,
-      value: String(value),
-    }));
-}
-
-export default function AdminTopupRequestsPage() {
+export default function AdminWithdrawalRequestsPage() {
   const { loggedIn, initialized, user, accessToken } = useAuth();
   const router = useRouter();
-  const [requests, setRequests] = useState<TopUpRequest[]>([]);
+  const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -70,12 +51,12 @@ export default function AdminTopupRequestsPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:9999/api/wallet/topup-requests', {
+      const response = await fetch('http://localhost:9999/api/wallet/withdrawal-requests', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || 'Không tải được yêu cầu nạp.');
+        throw new Error(data.message || 'Không tải được yêu cầu rút.');
       }
       const data = await response.json();
       setRequests(Array.isArray(data) ? data : []);
@@ -109,6 +90,11 @@ export default function AdminTopupRequestsPage() {
   };
 
   const handleAction = async (transactionId: number, action: 'approve' | 'reject') => {
+    if (action === 'reject') {
+      const ok = window.confirm('Từ chối yêu cầu rút này? Số dư ví của người dùng không đổi.');
+      if (!ok) return;
+    }
+
     setActionLoading(transactionId);
     setMessage(null);
 
@@ -119,18 +105,21 @@ export default function AdminTopupRequestsPage() {
       return;
     }
 
+    const adminNote =
+      action === 'reject'
+        ? (window.prompt('Ghi chú từ chối (tùy chọn):') || '').trim() || 'Từ chối yêu cầu rút'
+        : 'Duyệt yêu cầu rút';
+
     try {
       const response = await fetch(
-        `http://localhost:9999/api/wallet/topup-requests/${transactionId}/${action}`,
+        `http://localhost:9999/api/wallet/withdrawal-requests/${transactionId}/${action}`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            admin_note: action === 'reject' ? 'Từ chối yêu cầu nạp' : 'Duyệt yêu cầu nạp',
-          }),
+          body: JSON.stringify({ admin_note: adminNote }),
         }
       );
       const data = await response.json();
@@ -152,9 +141,9 @@ export default function AdminTopupRequestsPage() {
   if (loading) {
     return (
       <div className={adminStyles.adminPage}>
-        <AdminSidebar active="topup" />
+        <AdminSidebar active="withdrawal" />
         <div className={styles.mainWrap}>
-          <div className={styles.loading}>Đang tải yêu cầu nạp…</div>
+          <div className={styles.loading}>Đang tải yêu cầu rút…</div>
         </div>
       </div>
     );
@@ -162,16 +151,16 @@ export default function AdminTopupRequestsPage() {
 
   return (
     <div className={adminStyles.adminPage}>
-      <AdminSidebar active="topup" />
+      <AdminSidebar active="withdrawal" />
 
       <main className={styles.mainWrap}>
         <header className={styles.hero}>
           <div className={styles.heroInner}>
             <div className={styles.heroText}>
               <p className={styles.kicker}>Ví BikeCoin</p>
-              <h1 className={styles.title}>Yêu cầu nạp tiền</h1>
+              <h1 className={styles.title}>Yêu cầu rút tiền</h1>
               <p className={styles.subtitle}>
-                Duyệt hoặc từ chối các lệnh nạp đang chờ. Đối chiếu nội dung chuyển khoản và số tiền với thông tin người dùng.
+                Duyệt sau khi đã chuyển khoản thủ công cho người dùng; từ chối nếu chưa chuyển hoặc sai thông tin. 1 BikeCoin = 1 VNĐ.
               </p>
             </div>
             <div className={styles.toolbar}>
@@ -198,25 +187,25 @@ export default function AdminTopupRequestsPage() {
           {requests.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon} aria-hidden>
-                💳
+                💸
               </div>
-              <h2 className={styles.emptyTitle}>Không có yêu cầu nạp chờ duyệt</h2>
+              <h2 className={styles.emptyTitle}>Không có yêu cầu rút chờ duyệt</h2>
               <p className={styles.emptyText}>
-                Khi người dùng tạo lệnh nạp, yêu cầu sẽ xuất hiện tại đây. Dùng &quot;Làm mới danh sách&quot; để cập nhật.
+                Khi người dùng tạo lệnh rút, yêu cầu sẽ hiển thị tại đây. Dùng &quot;Làm mới danh sách&quot; để cập nhật.
               </p>
             </div>
           ) : (
             <div className={styles.requestGrid}>
-              {requests.map((request) => {
-                const displayName = (request.user_full_name || '').trim() || 'Chưa có tên hiển thị';
-                const bankRows = formatBankRows(request.bank_info);
+              {requests.map((req) => {
+                const displayName = (req.user_full_name || '').trim() || 'Chưa có tên hiển thị';
+                const vnd = req.fiat_amount ?? req.amount;
                 return (
-                  <article key={request.transaction_id} className={styles.requestCard}>
+                  <article key={req.transaction_id} className={styles.requestCard}>
                     <div className={styles.cardHeader}>
-                      <span className={styles.cardId}>#{request.transaction_id}</span>
-                      <time className={styles.cardDate} dateTime={request.created_at || undefined}>
-                        {request.created_at
-                          ? new Date(request.created_at).toLocaleString('vi-VN', {
+                      <span className={styles.cardId}>#{req.transaction_id}</span>
+                      <time className={styles.cardDate} dateTime={req.created_at || undefined}>
+                        {req.created_at
+                          ? new Date(req.created_at).toLocaleString('vi-VN', {
                               day: '2-digit',
                               month: '2-digit',
                               year: 'numeric',
@@ -229,7 +218,7 @@ export default function AdminTopupRequestsPage() {
 
                     <div className={styles.userBlock}>
                       <div className={styles.avatar} aria-hidden>
-                        {userInitials(request.user_full_name, request.user_id)}
+                        {userInitials(req.user_full_name, req.user_id)}
                       </div>
                       <div className={styles.userMeta}>
                         <p className={styles.userLabel}>Người dùng</p>
@@ -239,67 +228,38 @@ export default function AdminTopupRequestsPage() {
 
                     <dl className={styles.details}>
                       <div className={styles.detailRow}>
-                        <dt className={styles.detailDt}>Số tiền</dt>
+                        <dt className={styles.detailDt}>Số rút</dt>
                         <dd className={styles.detailDd}>
                           <span className={styles.fiatBig}>
-                            {Number(request.fiat_amount).toLocaleString('vi-VN')} VNĐ
-                          </span>{' '}
-                          <span className={styles.currencyHint}>({request.currency})</span>
+                            {Number(req.amount).toLocaleString('vi-VN')} BikeCoin
+                          </span>
                         </dd>
                       </div>
                       <div className={styles.detailRow}>
-                        <dt className={styles.detailDt}>Nội dung CK</dt>
+                        <dt className={styles.detailDt}></dt>
                         <dd className={styles.detailDd}>
-                          {request.transfer_note ? (
-                            <span className={styles.transferNoteMono}>{request.transfer_note}</span>
-                          ) : (
-                            '—'
-                          )}
+                          <span className={styles.accountMono}>
+                            {Number(vnd).toLocaleString('vi-VN')} VNĐ
+                          </span>
+                          <span className={styles.currencyHint}> ({req.currency})</span>
                         </dd>
                       </div>
-                      {bankRows.map((row) => (
-                        <div key={row.key} className={styles.detailRow}>
-                          <dt className={styles.detailDt}>{row.label}</dt>
-                          <dd className={styles.detailDd}>
-                            {row.key === 'account_number' ? (
-                              <span className={styles.accountMono}>{row.value}</span>
-                            ) : (
-                              row.value
-                            )}
-                          </dd>
-                        </div>
-                      ))}
-                      {request.evidence_url ? (
-                        <div className={styles.detailRow}>
-                          <dt className={styles.detailDt}>Minh chứng</dt>
-                          <dd className={styles.detailDd}>
-                            <a
-                              href={request.evidence_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={styles.evidenceLink}
-                            >
-                              Xem ảnh / file
-                            </a>
-                          </dd>
-                        </div>
-                      ) : null}
                     </dl>
 
                     <div className={styles.cardActions}>
                       <button
                         type="button"
                         className={styles.btnApprove}
-                        disabled={actionLoading === request.transaction_id}
-                        onClick={() => handleAction(request.transaction_id, 'approve')}
+                        disabled={actionLoading === req.transaction_id}
+                        onClick={() => handleAction(req.transaction_id, 'approve')}
                       >
-                        Duyệt
+                        Đã chuyển khoản — Duyệt
                       </button>
                       <button
                         type="button"
                         className={styles.btnReject}
-                        disabled={actionLoading === request.transaction_id}
-                        onClick={() => handleAction(request.transaction_id, 'reject')}
+                        disabled={actionLoading === req.transaction_id}
+                        onClick={() => handleAction(req.transaction_id, 'reject')}
                       >
                         Từ chối
                       </button>

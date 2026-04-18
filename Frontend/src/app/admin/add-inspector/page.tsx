@@ -292,8 +292,9 @@ export default function AddInspectorPage() {
       setConfirmPasswordError('');
       setDateOfBirthError('');
       setAvatarError('');
-    } catch (err: any) {
-      setMessage(err.message || 'Đã có lỗi xảy ra.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Đã có lỗi xảy ra.';
+      setMessage(errorMessage);
     } finally {
       setLoading(false);
     }

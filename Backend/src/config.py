@@ -24,6 +24,8 @@ class Config:
     TESTING = os.environ.get('TESTING', 'False').lower() in ['true', '1']
     DATABASE_URI = os.environ.get('DATABASE_URI') or 'sqlite:///bikehub.db'
     CORS_HEADERS = 'Content-Type'
+    STATIC_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+    STATIC_URL_PATH = '/uploads'
 
 class DevelopmentConfig(Config):
     """Development configuration."""

@@ -20,6 +20,10 @@ def create_app():
     app.config.from_object(JWTConfig)
     app.config.setdefault('SQLALCHEMY_DATABASE_URI', app.config.get('DATABASE_URI'))
 
+    # Configure static folder for uploads
+    app.static_folder = app.config.get('STATIC_FOLDER')
+    app.static_url_path = app.config.get('STATIC_URL_PATH')
+
     setup_logging()
     init_cors(app)
     
@@ -193,6 +197,11 @@ def create_app():
     
     setup_middleware(app)
     register_routes(app)
+
+    # Serve uploaded files
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        return app.send_static_file(os.path.join('uploads', filename))
 
     # Basic index and health endpoints for quick validation
     @app.route("/")

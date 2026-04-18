@@ -27,6 +27,11 @@ try:
     from ..controllers.bank_controller import bank_bp
 except ImportError:
     bank_bp = None
+try:
+    from ..controllers.admin_controller import admin_bp
+except Exception as _e:
+    import traceback; traceback.print_exc()
+    admin_bp = None
 
 __all__ = ['auth_endpoints_bp', 'register_routes']
 
@@ -54,3 +59,6 @@ def register_routes(app: Flask):
     # Register bank routes if available
     if bank_bp:
         app.register_blueprint(bank_bp, url_prefix='/api')
+    # Register admin routes if available
+    if admin_bp:
+        app.register_blueprint(admin_bp)

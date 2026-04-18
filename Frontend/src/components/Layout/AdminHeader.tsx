@@ -2,15 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FiUser, FiLogOut, FiPlus, FiHome } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiHome } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import styles from './AdminHeader.module.css';
 
 const AdminHeader: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const { loggedIn, user, logout } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -41,7 +40,11 @@ const AdminHeader: React.FC = () => {
 
         <div className={styles.userSection}>
           <div className={styles.userBadge}>
-            <span>{user?.full_name?.charAt(0).toUpperCase() || 'A'}</span>
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt={user.full_name} className={styles.userAvatarImg} />
+            ) : (
+              <span>{user?.full_name?.charAt(0).toUpperCase() || 'A'}</span>
+            )}
           </div>
           <div className={styles.userInfo}>
             <p>{user?.full_name || 'Admin'}</p>

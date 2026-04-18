@@ -11,7 +11,7 @@ from sqlalchemy import or_
 
 from api.middleware.auth import require_auth, require_admin
 from api.utils.jwt_utils import TokenManager, get_current_user
-from infrastructure.databases import db
+from infrastructure.databases import db, SessionLocal
 from infrastructure.models.auth.user_model import UserModel
 from infrastructure.models.interactions.review_model import ReviewModel
 from infrastructure.models.orders.models import Order
@@ -452,6 +452,38 @@ def create_user():
             "error": "Server error",
             "message": str(e)
         }), 500
+
+
+@auth_endpoints_bp.route('', methods=['GET'])
+@require_admin
+def list_users():
+    """
+    Admin-only endpoint to list all users and inspectors.
+    """
+    db_session = SessionLocal()
+    try:
+        users = db_session.query(UserModel).order_by(UserModel.role.desc(), UserModel.full_name.asc()).all()
+        return jsonify([
+            {
+                'user_id': user.user_id,
+                'full_name': user.full_name,
+                'email': user.email,
+                'phone': user.phone,
+                'avatar_url': user.avatar_url,
+                'role': user.role,
+                'service_area': user.service_area,
+                'status': user.status,
+            }
+            for user in users
+        ]), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Server error',
+            'message': str(e)
+        }), 500
+    finally:
+        db_session.close()
 
 
 @auth_endpoints_bp.route('/login', methods=['POST'])

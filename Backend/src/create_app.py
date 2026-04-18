@@ -61,10 +61,12 @@ def create_app():
 
         try:
             from infrastructure.models.orders.models import Order, DepositEscrow
+            from infrastructure.models.orders.dispute_model import OrderDispute  # noqa: F401
             from infrastructure.models.pay.models import WalletTransaction
         except Exception:
             Order = None
             DepositEscrow = None
+            OrderDispute = None
             WalletTransaction = None
 
         try:
@@ -132,6 +134,62 @@ def create_app():
             print(f"[create_app] error while clearing schemas: {e}")
 
         Base.metadata.create_all(bind=db.engine)
+
+        try:
+            if dialect_name in ('postgresql', 'postgres'):
+                with db.engine.begin() as connection:
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS fiat_amount DECIMAL(15, 2) DEFAULT 0.00"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(5) DEFAULT 'B'"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS transfer_note TEXT"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS evidence_url TEXT"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS admin_note TEXT"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS processed_by INT REFERENCES auth.users(user_id)"))
+                    connection.execute(text("ALTER TABLE wallet.transactions ADD COLUMN IF NOT EXISTS bank_info JSONB"))
+                    try:
+                        connection.execute(text("ALTER TABLE wallet.transactions ALTER COLUMN type TYPE VARCHAR(40)"))
+                    except Exception as ex:
+                        print(f"[create_app] wallet.transactions.type alter: {ex}")
+                    connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP"))
+                    connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS fee_amount DECIMAL(10, 2) DEFAULT 50000"))
+                    connection.execute(text("ALTER TABLE inspections.reports ADD COLUMN IF NOT EXISTS condition_percent INT"))
+                    for stmt in (
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS deposit_percent NUMERIC(5, 2)",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS deposit_amount NUMERIC(15, 2)",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS remaining_amount NUMERIC(15, 2)",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS buyer_reject_reason TEXT",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS listing_was_verified BOOLEAN DEFAULT FALSE",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                        "ALTER TABLE orders.orders ADD COLUMN IF NOT EXISTS meeting_confirmed_at TIMESTAMP",
+                    ):
+                        connection.execute(text(stmt))
+                    for stmt in (
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS banned_until TIMESTAMP",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS banned_permanent BOOLEAN DEFAULT FALSE",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS locked_at TIMESTAMP",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS sanction_note TEXT",
+                        "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS service_area VARCHAR(120)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_target VARCHAR(16)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_actions VARCHAR(128)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_ban_days INT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_ban_permanent BOOLEAN",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_reputation_deduction FLOAT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS penalty_note TEXT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS admin_penalty_applied_at TIMESTAMP",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS admin_penalty_applied_by INT REFERENCES auth.users(user_id)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS admin_penalty_note TEXT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS dispute_area VARCHAR(120)",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS dispute_address TEXT",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP",
+                        "ALTER TABLE orders.order_disputes ADD COLUMN IF NOT EXISTS cancelled_by_user_id INT REFERENCES auth.users(user_id)",
+                    ):
+                        connection.execute(text(stmt))
+                    try:
+                        connection.execute(text("ALTER TABLE orders.orders ALTER COLUMN status TYPE VARCHAR(40)"))
+                    except Exception as ex:
+                        print(f"[create_app] orders.orders status column alter (may already be wide): {ex}")
+        except Exception as e:
+            print(f"[create_app] warning: could not migrate wallet.transactions or inspections.reports columns: {e}")
+
     
     setup_middleware(app)
     register_routes(app)

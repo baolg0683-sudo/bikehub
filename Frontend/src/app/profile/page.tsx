@@ -15,6 +15,7 @@ interface ProfileData {
   date_of_birth?: string | null;
   age?: number | null;
   reputation_score?: number | null;
+  service_area?: string | null;
 }
 
 interface ReviewData {
@@ -431,6 +432,12 @@ export default function ProfilePage() {
                     <span>Điểm uy tín</span>
                     <span>{profile.reputation_score ?? "Chưa có"}</span>
                   </div>
+                  {profile.role === 'INSPECTOR' && profile.service_area ? (
+                    <div className={styles.infoRow}>
+                      <span>Khu vực phục vụ</span>
+                      <span><strong>{profile.service_area}</strong></span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

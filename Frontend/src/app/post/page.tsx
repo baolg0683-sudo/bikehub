@@ -64,11 +64,18 @@ function PostBikeForm() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [listingVerified, setListingVerified] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const listingId = searchParams.get("listingId");
+  const isEditLocked = editMode && listingVerified;
+  const isOnlyPriceDescriptionEditable = isEditLocked;
+
+  const isFieldDisabled = (field: string) =>
+    isOnlyPriceDescriptionEditable && field !== "price" && field !== "description";
 
   const handleChange = (field: string, value: string) => {
+    if (isFieldDisabled(field)) return;
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -111,6 +118,89 @@ function PostBikeForm() {
     setImagePreviews((prev) => prev.filter((_, idx) => idx !== index));
   };
 
+<<<<<<< Updated upstream
+=======
+  const handleDragStart = (index: number, event: React.DragEvent<HTMLDivElement>) => {
+    setDraggedImageIndex(index);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (index: number, event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const sourceIndex = draggedImageIndex ?? Number(event.dataTransfer.getData("text/plain"));
+    if (sourceIndex === index || sourceIndex < 0 || sourceIndex >= imagePreviews.length) {
+      setDraggedImageIndex(null);
+      return;
+    }
+
+    setImagePreviews((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(sourceIndex, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+
+    setActiveImageIndex((current) => {
+      if (current === sourceIndex) {
+        return index;
+      }
+      if (sourceIndex < current && index >= current) {
+        return current - 1;
+      }
+      if (sourceIndex > current && index <= current) {
+        return current + 1;
+      }
+      return current;
+    });
+
+    setDraggedImageIndex(null);
+  };
+
+  const openZoom = (index: number) => {
+    if (!imagePreviews.length) {
+      return;
+    }
+    setZoomIndex(index);
+    setIsZoomOpen(true);
+  };
+
+  const closeZoom = () => {
+    setIsZoomOpen(false);
+  };
+
+  const showPrevZoom = () => {
+    setZoomIndex((current) => (current - 1 + imagePreviews.length) % imagePreviews.length);
+  };
+
+  const showNextZoom = () => {
+    setZoomIndex((current) => (current + 1) % imagePreviews.length);
+  };
+
+  const triggerImageUpload = () => {
+    if (editMode && listingVerified) return;
+    fileInputRef.current?.click();
+  };
+
+  const previewImage = imagePreviews[activeImageIndex] || "/assets/bike.png";
+  const previewTitle = form.title || "Tiêu đề bài đăng của bạn sẽ hiển thị tại đây";
+  const previewBrandText = form.brand ? `${form.brand}${form.model ? ` ${form.model}` : ""}` : "Chờ nhập thương hiệu và model";
+  const previewType = form.type || "Chờ nhập loại xe";
+  const previewMileage = form.mileage ? `${form.mileage} km` : "Chờ nhập";
+  const previewYear = form.year || "Chờ nhập";
+  const previewFrameSize = form.frame_size || "Chờ nhập";
+  const previewFrameMaterial = form.frame_material || "Chờ nhập";
+  const previewColor = form.color || "Chờ nhập";
+  const previewGroupset = form.groupset || "Chờ nhập";
+  const previewSerial = form.serial_number || "Chờ nhập";
+  const previewDescription = form.description || "Mô tả chi tiết sản phẩm sẽ hiển thị ở đây.";
+  const previewPrice = form.price ? formatPrice(form.price) : "Giá bán";
+
+>>>>>>> Stashed changes
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("Đang gửi...");
@@ -231,6 +321,7 @@ function PostBikeForm() {
           additionalSpecs: listing.additional_specs || '',
         }));
         setImagePreviews(listing.images || []);
+        setListingVerified(Boolean(listing.is_verified || listing.inspection_status === 'PASSED'));
         setEditMode(true);
         setStatus('');
       } catch (err: any) {
@@ -243,6 +334,7 @@ function PostBikeForm() {
 
   return (
     <section className={styles.postPage}>
+<<<<<<< Updated upstream
       <form className={styles.postForm} onSubmit={handleSubmit}>
         <p className={styles.note}>
           Người dùng không cần nhập % tình trạng xe. Chuyên viên kiểm định sẽ đánh giá chất lượng và cập nhật trạng thái sau khi kiểm định.
@@ -277,6 +369,326 @@ function PostBikeForm() {
                 </option>
               ))}
             </select>
+=======
+      <div className={styles.postContent}>
+        <form className={styles.postForm} onSubmit={handleSubmit}>
+          <div className={styles.previewPanel}>
+            <div className={styles.previewHeader}>
+              <h2>Xem trước danh sách</h2>
+              <p>Nhập đầy đủ thông tin trực tiếp vào thẻ xem trước, click vào khung ảnh để chọn nhiều ảnh.</p>
+              <p className={styles.imageRequiredNote}>
+                Dấu <span className={styles.required}>(*)</span> là bắt buộc. Vui lòng cung cấp đầy đủ thông tin!
+              </p>
+              {isEditLocked && (
+                <div className={styles.formStatus}>
+                  Tin này đã được xác minh. Nhưng bạn có thể chỉnh sửa giá và mô tả để tìm người mua dễ dàng hơn.
+                </div>
+              )}
+            </div>
+
+            <div className={styles.previewCard}>
+              <div className={styles.previewImageWrapper} onClick={triggerImageUpload}>
+                {previewImage ? (
+                  <img src={previewImage} alt="Ảnh xem trước" className={styles.previewImage} />
+                ) : (
+                  <div className={styles.previewPlaceholder}>Ảnh xe sẽ hiển thị ở đây</div>
+                )}
+                <button
+                  type="button"
+                  className={styles.previewZoomButton}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openZoom(activeImageIndex);
+                  }}
+                >
+                  🔍
+                </button>
+                <div className={styles.previewImageOverlay}>
+                  {imagePreviews.length > 0 ? "Click để thay ảnh" : "Click để chọn ảnh (tối đa 5) "}
+                  {!imagePreviews.length && <span className={styles.required}>*</span>}
+                </div>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className={styles.imageInput}
+                onChange={handleImageChange}
+                disabled={isEditLocked}
+              />
+
+              {imagePreviews.length > 0 && (
+                <>
+                  <div className={styles.previewThumbnailRow}>
+                    {imagePreviews.map((src, index) => (
+                      <div
+                        key={`${src}-${index}`}
+                        className={`${styles.previewThumbnailButton} ${index === activeImageIndex ? styles.previewThumbnailActive : ""}`}
+                        draggable
+                        role="button"
+                        tabIndex={0}
+                        onDragStart={(event) => handleDragStart(index, event)}
+                        onDragOver={handleDragOver}
+                        onDrop={(event) => handleDrop(index, event)}
+                        onClick={() => setActiveImageIndex(index)}
+                      >
+                        <img src={src} alt={`Hình ${index + 1}`} className={styles.previewThumbnailImg} />
+                        <button
+                          type="button"
+                          className={styles.previewThumbnailRemove}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            removeImage(index);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {isZoomOpen && (
+                    <div className={styles.imageZoomModal} onClick={closeZoom}>
+                      <div className={styles.imageZoomContent} onClick={(event) => event.stopPropagation()}>
+                        <button type="button" className={styles.imageZoomClose} onClick={closeZoom}>
+                          ×
+                        </button>
+                        <img src={imagePreviews[zoomIndex]} alt={`Ảnh phóng to ${zoomIndex + 1}`} className={styles.imageZoomed} />
+                        {imagePreviews.length > 1 && (
+                          <div className={styles.imageZoomControls}>
+                            <button type="button" onClick={showPrevZoom} className={styles.imageZoomControlButton}>
+                              ‹
+                            </button>
+                            <button type="button" onClick={showNextZoom} className={styles.imageZoomControlButton}>
+                              ›
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+                <div className={styles.previewDetailPanel}>
+                <div className={styles.previewTopRow}>
+                  <span className={styles.previewStatusTag}>Chờ đăng</span>
+                  <div className={styles.previewPriceField}>
+                    <label>
+                      Giá bán <span className={styles.required}>*</span>
+                    </label>
+                    <input
+                      className={styles.previewPriceInput}
+                      type="text"
+                      value={form.price}
+                      onChange={(event) => handleChange("price", event.target.value)}
+                      placeholder="Giá bán (VNĐ)"
+                    />
+                  </div>
+                </div>
+                <div className={styles.previewField}>
+                  <label>
+                    Tiêu đề <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    className={styles.previewInput}
+                    value={form.title}
+                    onChange={(event) => handleChange("title", event.target.value)}
+                    placeholder="Tiêu đề bài đăng của bạn sẽ hiển thị tại đây"
+                    disabled={isFieldDisabled("title")}
+                  />
+                </div>
+
+                <div className={styles.previewMeta}>
+              <div className={styles.previewField}>
+                <label>
+                  Hãng <span className={styles.required}>*</span>
+                </label>
+                <select
+                  className={styles.previewSelect}
+                  value={form.brand}
+                  onChange={(event) => handleChange("brand", event.target.value)}
+                  disabled={isFieldDisabled("brand")}
+                >
+                  {bikeBrands.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
+                    </option>
+                  ))}
+                  <option value="Khác">Khác</option>
+                </select>
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Model <span className={styles.required}>*</span>
+                </label>
+                <input
+                  className={styles.previewInput}
+                  value={form.model}
+                  onChange={(event) => handleChange("model", event.target.value)}
+                  placeholder="TCR, Defy, Madone..."
+                  disabled={isFieldDisabled("model")}
+                />
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Loại xe <span className={styles.required}>*</span>
+                </label>
+                <select
+                  className={styles.previewSelect}
+                  value={form.type}
+                  onChange={(event) => handleChange("type", event.target.value)}
+                  disabled={isFieldDisabled("type")}
+                >
+                  {bikeTypes.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className={styles.previewGrid}>
+              <div className={styles.previewField}>
+                <label>
+                  Năm sản xuất <span className={styles.required}>*</span>
+                </label>
+                <input
+                  className={styles.previewInput}
+                  value={form.year}
+                  onChange={(event) => handleChange("year", event.target.value)}
+                  placeholder="Ví dụ: 2022"
+                  disabled={isFieldDisabled("year")}
+                />
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Kích thước khung <span className={styles.required}>*</span>
+                </label>
+                <input
+                  className={styles.previewInput}
+                  value={form.frame_size}
+                  onChange={(event) => handleChange("frame_size", event.target.value)}
+                  placeholder="Cm hoặc inch"
+                  disabled={isFieldDisabled("frame_size")}
+                />
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Chất liệu khung <span className={styles.required}>*</span>
+                </label>
+                <select
+                  className={styles.previewSelect}
+                  value={form.frame_material}
+                  onChange={(event) => handleChange("frame_material", event.target.value)}
+                  disabled={isFieldDisabled("frame_material")}
+                >
+                  {frameMaterials.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Loại phanh <span className={styles.required}>*</span>
+                </label>
+                <select
+                  className={styles.previewSelect}
+                  value={form.brake_type}
+                  onChange={(event) => handleChange("brake_type", event.target.value)}
+                  disabled={isFieldDisabled("brake_type")}
+                >
+                  {brakeTypes.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Cỡ bánh <span className={styles.required}>*</span>
+                </label>
+                <input
+                  className={styles.previewInput}
+                  value={form.wheel_size}
+                  onChange={(event) => handleChange("wheel_size", event.target.value)}
+                  placeholder="700c / 27.5 / 29"
+                  disabled={isFieldDisabled("wheel_size")}
+                />
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Màu sắc <span className={styles.required}>*</span>
+                </label>
+                <input
+                  className={styles.previewInput}
+                  value={form.color}
+                  onChange={(event) => handleChange("color", event.target.value)}
+                  placeholder="Chờ nhập"
+                  disabled={isFieldDisabled("color")}
+                />
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Groupset
+                </label>
+                <input
+                  className={styles.previewInput}
+                  value={form.groupset}
+                  onChange={(event) => handleChange("groupset", event.target.value)}
+                  placeholder="Chờ nhập"
+                  disabled={isFieldDisabled("groupset")}
+                />
+              </div>
+              <div className={styles.previewField}>
+                <label>
+                  Serial / Số khung
+                </label>
+                <input
+                  className={styles.previewInput}
+                  value={form.serial_number}
+                  onChange={(event) => handleChange("serial_number", event.target.value)}
+                  placeholder="Chờ nhập"
+                  disabled={isFieldDisabled("serial_number")}
+                />
+              </div>
+              <div className={styles.previewField}>
+                <label>Quãng đường</label>
+                <input
+                  className={styles.previewInput}
+                  value={form.mileage}
+                  onChange={(event) => handleChange("mileage", event.target.value)}
+                  placeholder="Km"
+                  disabled={isFieldDisabled("mileage")}
+                />
+              </div>
+            </div>
+
+                <div className={styles.previewDescription}>
+                  <h4>Mô tả</h4>
+                  <textarea
+                    className={styles.previewTextarea}
+                    value={form.description}
+                    onChange={(event) => handleChange("description", event.target.value)}
+                    placeholder="Mô tả tình trạng xe, phụ kiện đi kèm, lý do bán..."
+                    rows={4}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" className={styles.submitButton}>
+              {editMode ? (isEditLocked ? 'Cập nhật giá và mô tả' : 'Cập nhật tin đăng') : 'Gửi tin đăng'}
+            </button>
+
+            {status && <div className={styles.formStatus}>{status}</div>}
+>>>>>>> Stashed changes
           </div>
 
           <div className={styles.formGroup}>

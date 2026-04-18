@@ -30,6 +30,7 @@ interface Listing {
   price: string;
   status: string;
   inspection_status?: string;
+  is_verified?: boolean;
   assigned_inspector_id?: number;
   assigned_inspector?: {
     user_id: number;
@@ -120,6 +121,7 @@ export default function InspectorDetail() {
   const [unassignLoading, setUnassignLoading] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [inspectionCondition, setInspectionCondition] = useState('');
+  const [reviewNote, setReviewNote] = useState('');
 
   useEffect(() => {
     if (!initialized) return;
@@ -143,6 +145,9 @@ export default function InspectorDetail() {
         }
         const data = await response.json();
         setListing(data);
+        if (data.status === 'PENDING' && (!data.inspection_status || data.inspection_status === 'NONE')) {
+          setInspectionStarted(true);
+        }
       } catch (err) {
         console.error(err);
         alert('Không tìm thấy tin đăng!');
@@ -165,7 +170,7 @@ export default function InspectorDetail() {
         brand: listing.bike_details?.brand || '',
         model: listing.bike_details?.model || '',
         type: listing.bike_details?.type || '',
-        condition_percent: listing.bike_details?.condition_percent ?? '',
+        condition_percent: String(listing.bike_details?.condition_percent ?? ''),
         frame_size: listing.bike_details?.frame_size || '',
         frame_material: listing.bike_details?.frame_material || '',
         wheel_size: listing.bike_details?.wheel_size || '',
@@ -193,17 +198,35 @@ export default function InspectorDetail() {
     }));
   };
 
-  const inspectionAssignedToMe = Boolean(
-    listing?.inspection_status === 'SCHEDULED' &&
-      listing?.assigned_inspector_id &&
+  const inspectedByMe = Boolean(
+    listing?.assigned_inspector_id &&
       user?.user_id &&
       listing.assigned_inspector_id === user.user_id
   );
 
+  const isPendingApprovalListing = Boolean(
+    listing?.status === 'PENDING' && (!listing?.inspection_status || listing.inspection_status === 'NONE')
+  );
+
+  const verifiedVehicle = Boolean(
+    listing?.is_verified || listing?.inspection_status === 'PASSED'
+  );
+
+  const inspectionAssignedToMe = Boolean(
+    inspectedByMe && listing?.inspection_status === 'SCHEDULED'
+  );
+
+  const inspectionAllowed = !verifiedVehicle;
+
   const handleStartInspection = async () => {
     if (!listing) return;
 
-    if (inspectionAssignedToMe) {
+    if (verifiedVehicle) {
+      alert('Xe đã được xác minh. Bạn chỉ có thể xem thông tin, không thể kiểm định lại.');
+      return;
+    }
+
+    if (inspectionAssignedToMe || isPendingApprovalListing) {
       setInspectionStarted(true);
       setSaveMessage(null);
       return;
@@ -319,26 +342,32 @@ export default function InspectorDetail() {
   const allChecked = CHECKLIST_ITEMS.every((item) => checks[item.id]);
 
   const handleApprove = async () => {
-    if (!allChecked) return;
-    if (Number(inspectionCondition) < 80) {
-      alert('Không thể duyệt. Độ mới phải từ 80% trở lên.');
-      return;
-    }
     setIsSubmitting(true);
     try {
+      const payload: any = { action: 'PASS' };
+      if (!isPendingApprovalListing) {
+        if (!allChecked) {
+          alert('Cần hoàn tất checklist trước khi duyệt.');
+          return;
+        }
+        if (Number(inspectionCondition) < 80) {
+          alert('Không thể duyệt. Độ mới phải từ 80% trở lên.');
+          return;
+        }
+        payload.technical_details = { condition_percent: Number(inspectionCondition) };
+      } else {
+        payload.review_only = true;
+      }
       const response = await fetch(`/api/listings/${id}/inspect`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          action: 'PASS',
-          technical_details: { condition_percent: Number(inspectionCondition) },
-        }),
+        body: JSON.stringify(payload),
       });
       if (response.ok) {
-        alert('Kiểm định thành công. Đã gắn tích xanh cho xe!');
+        alert(isPendingApprovalListing ? 'Đã duyệt tin đăng thành công.' : 'Kiểm định thành công. Đã gắn tích xanh cho xe!');
         router.push('/inspector');
       } else {
         const err = await response.json();
@@ -353,7 +382,7 @@ export default function InspectorDetail() {
   };
 
   const handleReject = async () => {
-    if (!confirm('Bạn có chắc chắn muốn TỪ CHỐI tin đăng này?')) return;
+    if (!confirm(`Bạn có chắc chắn muốn TỪ CHỐI tin đăng này?`)) return;
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/listings/${id}/inspect`, {
@@ -364,12 +393,12 @@ export default function InspectorDetail() {
         },
         body: JSON.stringify({
           action: 'FAIL',
-          overall_verdict: 'Không đạt kiểm định.',
-          technical_details: { condition_percent: Number(inspectionCondition) },
+          overall_verdict: reviewNote.trim() || (isPendingApprovalListing ? 'Tin đăng bị từ chối' : 'Từ chối duyệt tin.'),
+          technical_details: isPendingApprovalListing ? {} : { condition_percent: Number(inspectionCondition) },
         }),
       });
       if (response.ok) {
-        alert('Đã từ chối tin đăng thành công.');
+        alert(isPendingApprovalListing ? 'Đã từ chối tin đăng thành công.' : 'Đã từ chối tin đăng thành công.');
         router.push('/inspector');
       } else {
         const err = await response.json();
@@ -378,6 +407,41 @@ export default function InspectorDetail() {
     } catch (err) {
       console.error(err);
       alert('Có lỗi xảy ra khi từ chối');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!reviewNote.trim()) {
+      alert('Vui lòng nhập nội dung báo cáo.');
+      return;
+    }
+    if (!confirm('Bạn có chắc chắn muốn gửi báo cáo cho tin đăng này?')) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/listings/${id}/inspect`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'FAIL',
+          overall_verdict: `Báo cáo vi phạm: ${reviewNote.trim()}`,
+          technical_details: {},
+        }),
+      });
+      if (response.ok) {
+        alert('Báo cáo tin đăng đã được gửi.');
+        router.push('/inspector');
+      } else {
+        const err = await response.json();
+        alert(`Lỗi: ${err.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Có lỗi xảy ra khi gửi báo cáo');
     } finally {
       setIsSubmitting(false);
     }
@@ -393,7 +457,9 @@ export default function InspectorDetail() {
           <Link href="/inspector" className={styles.backLink}>
             ← Quay lại danh sách
           </Link>
-          <h1 className={styles.title}>Biên Bản Kiểm Định: {listing.title}</h1>
+          <h1 className={styles.title}>
+            {isPendingApprovalListing ? 'Duyệt tin đăng:' : 'Biên Bản Kiểm Định:'} {listing.title}
+          </h1>
         </div>
 
         <div className={styles.actionRow}>
@@ -411,13 +477,15 @@ export default function InspectorDetail() {
           >
             Chat với người bán
           </button>
-          <button
-            type="button"
-            className={`${styles.requestChangeBtn} ${showEditForm ? styles.activeEditBtn : ''}`}
-            onClick={() => setShowEditForm((prev) => !prev)}
-          >
-            Thay đổi thông tin
-          </button>
+          {!verifiedVehicle && !isPendingApprovalListing && (
+            <button
+              type="button"
+              className={`${styles.requestChangeBtn} ${showEditForm ? styles.activeEditBtn : ''}`}
+              onClick={() => setShowEditForm((prev) => !prev)}
+            >
+              Thay đổi thông tin
+            </button>
+          )}
         </div>
 
         <div className={styles.card}>
@@ -507,7 +575,11 @@ export default function InspectorDetail() {
         <div className={styles.startInspectionWrapper}>
           <div className={styles.inspectionIntro}>
             <p>
-              {inspectionAssignedToMe
+              {verifiedVehicle
+                ? 'Xe đã được xác minh. Kiểm định viên chỉ có thể xem lại thông tin, không thể xử lý hay thay đổi.'
+                : isPendingApprovalListing
+                ? 'Đây là tin đăng chờ duyệt. Xem kỹ thông tin, sau đó nhấn Kiểm tra để duyệt hoặc từ chối.'
+                : inspectionAssignedToMe
                 ? 'Bạn đã nhận kiểm định chiếc này. Nhấn Tiến hành kiểm định để mở phần checklist và chỉnh sửa thông tin.'
                 : 'Nhấn Tiến hành kiểm định để nhận xe và mở quyền chỉnh sửa thông tin.'}
             </p>
@@ -517,17 +589,28 @@ export default function InspectorDetail() {
               type="button"
               className={styles.startInspectionBtn}
               onClick={handleStartInspection}
-              disabled={assignLoading}
+              disabled={assignLoading || verifiedVehicle}
             >
-              {assignLoading ? 'Đang xử lý...' : 'Tiến hành kiểm định'}
+              {assignLoading
+                ? 'Đang xử lý...'
+                : verifiedVehicle
+                ? 'Xe đã xác minh'
+                : isPendingApprovalListing
+                ? 'Kiểm tra'
+                : 'Tiến hành kiểm định'}
             </button>
           </div>
         </div>
         {inspectionStarted && (
           <div>
-            {showEditForm && (
+            {showEditForm && inspectionAllowed && !isPendingApprovalListing && (
               <div className={styles.editForm}>
                 <h2 className={styles.sectionTitle}>Thông tin sửa đổi</h2>
+                {verifiedVehicle && (
+                  <div className={styles.helperText}>
+                    Xe đã được xác minh, chỉ chỉnh sửa Giá và Mô tả. Các trường khác giữ nguyên.
+                  </div>
+                )}
                 <div className={styles.formRow}>
                   <label>Tiêu đề</label>
                   <input
@@ -559,6 +642,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.brand}
                     onChange={(event) => handleBikeDetailChange('brand', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   >
                     {bikeBrands.map((brand) => (
                       <option key={brand} value={brand}>
@@ -573,6 +657,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.model}
                     onChange={(event) => handleBikeDetailChange('model', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 <div className={styles.formRow}>
@@ -581,6 +666,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.type}
                     onChange={(event) => handleBikeDetailChange('type', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   >
                     {bikeTypes.map((type) => (
                       <option key={type} value={type}>
@@ -595,6 +681,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.frame_size}
                     onChange={(event) => handleBikeDetailChange('frame_size', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 <div className={styles.formRow}>
@@ -603,6 +690,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.frame_material}
                     onChange={(event) => handleBikeDetailChange('frame_material', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   >
                     {frameMaterials.map((material) => (
                       <option key={material} value={material}>
@@ -617,6 +705,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.wheel_size}
                     onChange={(event) => handleBikeDetailChange('wheel_size', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 <div className={styles.formRow}>
@@ -625,6 +714,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.brake_type}
                     onChange={(event) => handleBikeDetailChange('brake_type', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   >
                     {brakeTypes.map((brake) => (
                       <option key={brake} value={brake}>
@@ -639,6 +729,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.color}
                     onChange={(event) => handleBikeDetailChange('color', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 <div className={styles.formRow}>
@@ -647,6 +738,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.manufacture_year}
                     onChange={(event) => handleBikeDetailChange('manufacture_year', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 <div className={styles.formRow}>
@@ -655,6 +747,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.mileage_km}
                     onChange={(event) => handleBikeDetailChange('mileage_km', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 <div className={styles.formRow}>
@@ -663,6 +756,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.groupset}
                     onChange={(event) => handleBikeDetailChange('groupset', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 <div className={styles.formRow}>
@@ -671,6 +765,7 @@ export default function InspectorDetail() {
                     value={editForm.bike_details.serial_number}
                     onChange={(event) => handleBikeDetailChange('serial_number', event.target.value)}
                     className={styles.inputField}
+                    disabled={verifiedVehicle}
                   />
                 </div>
                 {saveMessage && <div className={styles.saveMessage}>{saveMessage}</div>}
@@ -686,59 +781,95 @@ export default function InspectorDetail() {
                 </div>
               </div>
             )}
-            <div className={styles.checklistSection}>
-              <h2 className={styles.checkTitle}>Checklist Đánh Giá Tình Trạng</h2>
-              <div className={styles.checklist}>
-                {CHECKLIST_ITEMS.map((item) => (
-                  <div key={item.id} className={styles.checkItem} onClick={() => handleCheck(item.id)}>
+            {!verifiedVehicle && !isPendingApprovalListing && (
+              <div className={styles.checklistSection}>
+                <h2 className={styles.checkTitle}>Checklist Đánh Giá Tình Trạng</h2>
+                <div className={styles.checklist}>
+                  {CHECKLIST_ITEMS.map((item) => (
+                    <div key={item.id} className={styles.checkItem} onClick={() => handleCheck(item.id)}>
+                      <input
+                        type="checkbox"
+                        className={styles.checkbox}
+                        checked={!!checks[item.id]}
+                        readOnly
+                      />
+                      <span className={styles.checkLabel}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {allChecked ? (
+                  <div className={styles.formRow}>
+                    <label>Độ mới thực tế (%)</label>
                     <input
-                      type="checkbox"
-                      className={styles.checkbox}
-                      checked={!!checks[item.id]}
-                      readOnly
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={inspectionCondition}
+                      onChange={(event) => setInspectionCondition(event.target.value)}
+                      className={styles.inputField}
                     />
-                    <span className={styles.checkLabel}>{item.label}</span>
+                    <div className={styles.helperText}>
+                      Nhập độ mới do kiểm định viên. Xe phải có ít nhất 80% để đạt chuẩn.
+                    </div>
                   </div>
-                ))}
-              </div>
-              {allChecked ? (
-                <div className={styles.formRow}>
-                  <label>Độ mới thực tế (%)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={inspectionCondition}
-                    onChange={(event) => setInspectionCondition(event.target.value)}
-                    className={styles.inputField}
-                  />
+                ) : (
                   <div className={styles.helperText}>
-                    Nhập độ mới do kiểm định viên. Xe phải có ít nhất 80% để đạt chuẩn.
+                    Hoàn tất checklist trước khi nhập độ mới.
                   </div>
-                </div>
-              ) : (
-                <div className={styles.helperText}>
-                  Hoàn tất checklist trước khi nhập độ mới.
-                </div>
-              )}
+                )}
 
-              <div className={styles.actions}>
-                <button className={styles.cancelBtn} onClick={handleCancelInspection} disabled={unassignLoading}>
-                  {unassignLoading ? 'Đang hủy...' : 'Hủy bỏ kiểm định'}
-                </button>
-                <button className={styles.rejectBtn} onClick={handleReject} disabled={isSubmitting}>
-                  Không đạt / Từ chối
-                </button>
-                <button
-                  className={styles.approveBtn}
-                  onClick={handleApprove}
-                  disabled={!allChecked || isSubmitting || Number(inspectionCondition) < 80}
-                  title={!allChecked ? 'Cần tick hết tất cả hạng mục trước khi duyệt' : Number(inspectionCondition) < 80 ? 'Độ mới phải từ 80% trở lên' : ''}
-                >
-                  Đạt chuẩn
-                </button>
+                <div className={styles.actions}>
+                  <button className={styles.cancelBtn} onClick={handleCancelInspection} disabled={unassignLoading}>
+                    {unassignLoading ? 'Đang hủy...' : 'Hủy bỏ kiểm định'}
+                  </button>
+                  <button className={styles.rejectBtn} onClick={handleReject} disabled={isSubmitting}>
+                    Không đạt / Từ chối
+                  </button>
+                  <button
+                    className={styles.approveBtn}
+                    onClick={handleApprove}
+                    disabled={!allChecked || isSubmitting || Number(inspectionCondition) < 80}
+                    title={!allChecked ? 'Cần tick hết tất cả hạng mục trước khi duyệt' : Number(inspectionCondition) < 80 ? 'Độ mới phải từ 80% trở lên' : ''}
+                  >
+                    Đạt chuẩn
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+            {isPendingApprovalListing && (
+              <div className={styles.reviewSection}>
+                <h2 className={styles.checkTitle}>Duyệt tin đăng</h2>
+                <p className={styles.helperText}>
+                  Kiểm tra thông tin người bán đăng có chính xác, không vi phạm nội quy. Nếu hợp lệ, chọn Duyệt tin. Nếu không hợp lệ hoặc có vấn đề, chọn Từ chối hoặc Báo cáo.
+                </p>
+
+                <div className={styles.formRow}>
+                  <label>Nội dung báo cáo / lý do từ chối</label>
+                  <textarea
+                    value={reviewNote}
+                    onChange={(event) => setReviewNote(event.target.value)}
+                    className={styles.textareaField}
+                    rows={4}
+                    placeholder="Ghi rõ lý do từ chối hoặc nội dung báo cáo nếu cần"
+                  />
+                </div>
+
+                <div className={styles.actions}>
+                  <button className={styles.cancelBtn} onClick={handleCancelInspection} disabled={unassignLoading}>
+                    Quay lại danh sách
+                  </button>
+                  <button className={styles.rejectBtn} onClick={handleReject} disabled={isSubmitting}>
+                    Từ chối tin
+                  </button>
+                  <button className={styles.reportBtn} onClick={handleReport} disabled={isSubmitting || !reviewNote.trim()}>
+                    Báo cáo
+                  </button>
+                  <button className={styles.approveBtn} onClick={handleApprove} disabled={isSubmitting}>
+                    Duyệt tin
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

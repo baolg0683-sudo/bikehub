@@ -64,7 +64,7 @@ const formatPrice = (value: string) => {
   if (Number.isNaN(number) || number === 0) {
     return "Liên hệ";
   }
-  return number.toLocaleString("vi-VN") + " đ";
+  return number.toLocaleString("vi-VN") + " BikeCoin";
 };
 
 const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, condition, price, isPromoted, isVerified, isWishlisted, onToggleWishlist }) => {

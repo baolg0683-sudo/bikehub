@@ -2,7 +2,9 @@ from flask import Blueprint, request, jsonify, g
 from api.middleware.auth import require_auth, optional_auth
 from infrastructure.databases import SessionLocal, db
 from infrastructure.models.sell.models import Listing, Media, Bicycle
+from infrastructure.models.orders.models import Order
 from infrastructure.models.auth.user_model import UserModel
+from services.order_service import ORDER_ACTIVE_STATUSES
 from infrastructure.models.inspections.report_model import InspectionReport
 from infrastructure.models.pay.models import WalletTransaction
 from sqlalchemy import or_
@@ -13,7 +15,16 @@ import re
 listing_bp = Blueprint("listing", __name__)
 
 
-def serialize_listing(row, db_session, sellers=None, media_by_listing=None, bike_by_listing=None):
+def serialize_listing(
+    row,
+    db_session,
+    sellers=None,
+    media_by_listing=None,
+    bike_by_listing=None,
+    *,
+    public_seller_only: bool = False,
+    active_deposit_order=None,
+):
     seller = None
     if sellers is not None:
         seller = sellers.get(row.seller_id)
@@ -57,11 +68,20 @@ def serialize_listing(row, db_session, sellers=None, media_by_listing=None, bike
         "is_hidden": bool(getattr(row, 'is_hidden', False)),
         "is_verified": bool(row.is_verified),
         "seller_id": row.seller_id,
-        "seller": {
-            "seller_id": seller.user_id if seller else row.seller_id,
-            "name": seller.full_name if seller and seller.full_name else (seller.email if seller else None),
-            "phone": seller.phone if seller else None,
-        },
+        "seller": (
+            {
+                "seller_id": seller.user_id if seller else row.seller_id,
+                "name": seller.full_name if seller and seller.full_name else (seller.email if seller else None),
+                "reputation_score": float(seller.reputation_score) if seller and seller.reputation_score is not None else 5.0,
+            }
+            if public_seller_only
+            else {
+                "seller_id": seller.user_id if seller else row.seller_id,
+                "name": seller.full_name if seller and seller.full_name else (seller.email if seller else None),
+                "phone": seller.phone if seller else None,
+                "reputation_score": float(seller.reputation_score) if seller and seller.reputation_score is not None else 5.0,
+            }
+        ),
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "images": [img.url for img in listing_media],
         "bike_details": {
@@ -81,7 +101,8 @@ def serialize_listing(row, db_session, sellers=None, media_by_listing=None, bike
                 "serial_number": bike.serial_number,
                 "primary_image_url": bike.primary_image_url,
             } if bike else {})
-        }
+        },
+        "active_deposit_order": active_deposit_order,
     }
 
 
@@ -106,6 +127,10 @@ def get_listings():
 
         if status_filter and status_filter.lower() != 'all':
             query = query.filter(Listing.status == status_filter)
+        else:
+            query = query.filter(Listing.status != 'RESERVED')
+
+        query = query.filter(Listing.is_hidden == False)
 
         if search_query:
             like_pattern = f"%{search_query}%"
@@ -148,7 +173,25 @@ def get_listings():
 
         bike_by_listing = {bike.listing_id: bike for bike in bike_rows}
 
-        result = [serialize_listing(r, db_session, sellers=sellers, media_by_listing=media_by_listing, bike_by_listing=bike_by_listing) for r in rows]
+        viewer_id = None
+        u = g.get('user')
+        if u and u.get('user_id') is not None:
+            try:
+                viewer_id = int(u.get('user_id'))
+            except (TypeError, ValueError):
+                viewer_id = None
+
+        result = [
+            serialize_listing(
+                r,
+                db_session,
+                sellers=sellers,
+                media_by_listing=media_by_listing,
+                bike_by_listing=bike_by_listing,
+                public_seller_only=not (viewer_id and viewer_id == r.seller_id),
+            )
+            for r in rows
+        ]
         return jsonify(result), 200
     finally:
         db_session.close()
@@ -162,7 +205,29 @@ def get_listing(listing_id):
         row = db.query(Listing).filter(Listing.listing_id == listing_id).first()
         if not row:
             return jsonify({"success": False, "message": "Listing not found"}), 404
-        result = serialize_listing(row, db)
+        viewer_id = None
+        u = g.get('user')
+        if u and u.get('user_id') is not None:
+            try:
+                viewer_id = int(u.get('user_id'))
+            except (TypeError, ValueError):
+                viewer_id = None
+        is_owner = viewer_id is not None and viewer_id == row.seller_id
+
+        if row.status == 'RESERVED':
+            allowed = is_owner
+            if not allowed and viewer_id is not None:
+                buyer_order = (
+                    db.query(Order)
+                    .filter(Order.listing_id == listing_id, Order.status.in_(ORDER_ACTIVE_STATUSES))
+                    .first()
+                )
+                if buyer_order and buyer_order.buyer_id == viewer_id:
+                    allowed = True
+            if not allowed:
+                return jsonify({"success": False, "message": "Listing not found"}), 404
+
+        result = serialize_listing(row, db, public_seller_only=not is_owner)
         return jsonify(result), 200
     finally:
         db.close()
@@ -197,7 +262,41 @@ def get_my_listings():
 
         bike_by_listing = {bike.listing_id: bike for bike in bike_rows}
 
-        result = [serialize_listing(r, db_session, media_by_listing=media_by_listing, bike_by_listing=bike_by_listing) for r in rows]
+        active_orders = (
+            db_session.query(Order)
+            .filter(Order.listing_id.in_(listing_ids), Order.status.in_(ORDER_ACTIVE_STATUSES))
+            .all()
+        ) if listing_ids else []
+        order_by_listing = {o.listing_id: o for o in active_orders}
+        buyer_ids = list({o.buyer_id for o in active_orders})
+        buyers = (
+            {u.user_id: u for u in db_session.query(UserModel).filter(UserModel.user_id.in_(buyer_ids)).all()}
+            if buyer_ids
+            else {}
+        )
+
+        def deposit_payload(lid):
+            o = order_by_listing.get(lid)
+            if not o:
+                return None
+            b = buyers.get(o.buyer_id)
+            return {
+                "order_id": o.order_id,
+                "buyer_id": o.buyer_id,
+                "buyer_name": (b.full_name or b.email) if b else None,
+                "order_status": o.status,
+            }
+
+        result = [
+            serialize_listing(
+                r,
+                db_session,
+                media_by_listing=media_by_listing,
+                bike_by_listing=bike_by_listing,
+                active_deposit_order=deposit_payload(r.listing_id),
+            )
+            for r in rows
+        ]
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500

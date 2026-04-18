@@ -1,11 +1,14 @@
 from dataclasses import asdict
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from domain.models.message import Message
 from domain.models.review import Review
 from infrastructure.models.interactions.message_model import MessageModel
 from infrastructure.models.interactions.review_model import ReviewModel
+from infrastructure.models.orders.models import Order
 from infrastructure.models.sell.models import Listing
 from infrastructure.models.auth.user_model import UserModel
+
+_TRADE_CHAT_STATUSES = ("DEPOSIT_HELD", "SELLER_CONFIRMED_HANDOVER", "DISPUTE_OPEN")
 
 class MessageRepository:
     def __init__(self, session):
@@ -78,8 +81,30 @@ class MessageRepository:
             for row in self.session.query(UserModel.user_id, UserModel.full_name).filter(UserModel.user_id.in_(peer_ids)).all()
         }
 
+        trade_order_by_key = {}
+        if listing_ids and peer_ids:
+            active_orders = (
+                self.session.query(Order)
+                .filter(
+                    Order.listing_id.in_(listing_ids),
+                    Order.status.in_(_TRADE_CHAT_STATUSES),
+                    or_(
+                        and_(Order.buyer_id == user_id, Order.seller_id.in_(peer_ids)),
+                        and_(Order.seller_id == user_id, Order.buyer_id.in_(peer_ids)),
+                    ),
+                )
+                .order_by(Order.updated_at.desc())
+                .all()
+            )
+            for order in active_orders:
+                peer = order.seller_id if order.buyer_id == user_id else order.buyer_id
+                key = (order.listing_id, peer)
+                if key not in trade_order_by_key:
+                    trade_order_by_key[key] = order.order_id
+
         results = []
         for entry in conversation_map.values():
+            conv_key = (entry['listing_id'], entry['peer_id'])
             results.append({
                 'listing_id': entry['listing_id'],
                 'peer_id': entry['peer_id'],
@@ -87,6 +112,7 @@ class MessageRepository:
                 'listing_title': listings.get(entry['listing_id'], f"Tin đăng #{entry['listing_id']}"),
                 'last_message': entry['last_message'],
                 'last_at': entry['last_at'],
+                'trade_order_id': trade_order_by_key.get(conv_key),
             })
 
         return sorted(results, key=lambda item: item['last_at'] or "", reverse=True)

@@ -10,6 +10,7 @@ type AuthMode = "login" | "register";
 interface FormData {
   email: string;
   password: string;
+  confirmPassword: string;
   phone: string;
   fullName: string;
   dateOfBirth: string;
@@ -18,6 +19,7 @@ interface FormData {
 interface ValidationErrors {
   email?: string;
   password?: string;
+  confirmPassword?: string;
   phone?: string;
   fullName?: string;
   dateOfBirth?: string;
@@ -36,6 +38,7 @@ export default function LoginPage() {
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
+    confirmPassword: "",
     phone: "",
     fullName: "",
     dateOfBirth: ""
@@ -139,6 +142,12 @@ export default function LoginPage() {
     return undefined;
   };
 
+  const validateConfirmPassword = (password: string, confirmPassword: string): string | undefined => {
+    if (!confirmPassword) return "Xác nhận mật khẩu là bắt buộc";
+    if (password !== confirmPassword) return "Mật khẩu xác nhận không khớp";
+    return undefined;
+  };
+
   const validateFullName = (fullName: string): string | undefined => {
     if (!fullName) return "Họ tên là bắt buộc";
     if (fullName.length < 2) return "Họ tên không hợp lệ";
@@ -193,6 +202,7 @@ export default function LoginPage() {
 
       // Validate password
       newErrors.password = validatePassword(formData.password);
+      newErrors.confirmPassword = validateConfirmPassword(formData.password, formData.confirmPassword);
     } else {
       // For login, only validate identifier and password
       const identifier = formData.email || formData.phone;
@@ -260,6 +270,7 @@ export default function LoginPage() {
           setFormData({
             email: "",
             password: "",
+            confirmPassword: "",
             phone: "",
             fullName: "",
             dateOfBirth: ""
@@ -299,7 +310,11 @@ export default function LoginPage() {
             }
           });
           console.log('[Login] User role:', data.data.user.role);
-          const redirectPath = data.data.user.role === 'ADMIN' ? '/admin' : '/';
+          const redirectPath = data.data.user.role === 'ADMIN'
+            ? '/admin'
+            : data.data.user.role === 'INSPECTOR'
+              ? '/inspector'
+              : '/';
           console.log('[Login] Redirecting to', redirectPath);
           router.push(redirectPath);
         } else {
@@ -447,6 +462,18 @@ export default function LoginPage() {
                     required
                   />
                   {errors.password && <span className={styles.errorText}>{errors.password}</span>}
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <input
+                    type="password"
+                    placeholder="Xác nhận mật khẩu"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    className={errors.confirmPassword ? styles.inputError : ''}
+                    required
+                  />
+                  {errors.confirmPassword && <span className={styles.errorText}>{errors.confirmPassword}</span>}
                 </div>
               </>
             )}

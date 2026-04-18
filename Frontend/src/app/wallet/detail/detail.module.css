@@ -1,0 +1,473 @@
+.detailContainer {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.detailHeader {
+  margin-bottom: 2rem;
+}
+
+.detailHeader h1 {
+  font-size: 2rem;
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.balanceDisplay {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.balance {
+  font-weight: 600;
+  color: #667eea;
+  font-size: 1.3rem;
+}
+
+/* Tabs */
+.tabsContainer {
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #eee;
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #666;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.tab:hover {
+  color: #667eea;
+}
+
+.tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+/* Tab Content */
+.tabContent {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tabPane {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+
+.tabPane h2 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+/* Bank Info */
+.bankInfoCard {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoRow label {
+  font-weight: 600;
+  color: #666;
+}
+
+.infoRow span {
+  color: #333;
+  font-size: 1.05rem;
+}
+
+.accountNumber {
+  font-family: "Courier New", monospace;
+  font-weight: 600;
+  color: #667eea;
+}
+
+/* Forms */
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.formGroup input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.formGroup small {
+  display: block;
+  margin-top: 0.5rem;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+/* Exchange Info */
+.exchangeInfo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.exchangeInfo p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.exchangeInfoSub {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* Generate Button */
+.generateButton {
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.generateButton:hover {
+  background: #764ba2;
+}
+
+/* Generated Note */
+.generatedNote {
+  background: #e8f4f8;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 2px solid #667eea;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.generatedNote strong {
+  color: #333;
+}
+
+.generatedNote span {
+  font-family: "Courier New", monospace;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #667eea;
+  letter-spacing: 2px;
+}
+
+/* Warning */
+.warning {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  color: #856404;
+}
+
+.warning strong {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+}
+
+.warning ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.warning li {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+/* Submit Button */
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status Message */
+.statusMessage {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  text-align: center;
+}
+
+/* Transactions */
+.transactionList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.transactionItem {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.transactionItem:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.txHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.txType {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.txTypeLabel {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.txStatus {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.txStatus.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.txStatus.status-processing {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.txStatus.status-completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.txStatus.status-failed {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.txStatus.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.txAmount {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.txDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.txDate {
+  color: #999;
+}
+
+.txNote,
+.txAdminNote {
+  color: #666;
+}
+
+.txAdminNote {
+  font-style: italic;
+  color: #999;
+}
+
+.noTransactions {
+  text-align: center;
+  color: #999;
+  padding: 2rem;
+  font-size: 1rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1rem;
+  color: #666;
+}
+
+/* Custom Bank Dropdown */
+.customSelect {
+  position: relative;
+  width: 100%;
+}
+
+.selectDisplay {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+  min-height: 48px;
+}
+
+.selectDisplay:hover {
+  border-color: #667eea;
+}
+
+.selectDisplay:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.bankLogo {
+  width: 24px;
+  height: 24px;
+  margin-right: 0.75rem;
+  object-fit: contain;
+}
+
+.dropdownArrow {
+  margin-left: auto;
+  color: #666;
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.customSelect:hover .dropdownArrow {
+  transform: rotate(180deg);
+}
+
+.dropdownOptions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dropdownOption {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdownOption:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdownOption:last-child {
+  border-bottom: none;
+}

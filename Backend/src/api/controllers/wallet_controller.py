@@ -11,7 +11,7 @@ wallet_bp = Blueprint('wallet', __name__)
 @require_auth
 def get_wallet_info():
     user = g.get('user')
-    if not user:
+    if not user or user.get('user_id') is None:
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     db = SessionLocal()
@@ -33,7 +33,7 @@ def get_wallet_info():
 @require_auth
 def user_transactions():
     user = g.get('user')
-    if not user:
+    if not user or user.get('user_id') is None:
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     try:
@@ -48,7 +48,6 @@ def user_transactions():
                 'type': tx.type,
                 'status': tx.status,
                 'transfer_note': tx.transfer_note,
-                'evidence_url': tx.evidence_url,
                 'admin_note': tx.admin_note,
                 'processed_by': tx.processed_by,
                 'created_at': tx.created_at.isoformat() if tx.created_at else None,
@@ -63,13 +62,12 @@ def user_transactions():
 @require_auth
 def create_topup_request():
     user = g.get('user')
-    if not user:
+    if not user or user.get('user_id') is None:
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     data = request.get_json() or {}
     fiat_amount = data.get('fiat_amount')
     transfer_note = data.get('transfer_note', '').strip()
-    evidence_url = data.get('evidence_url', '').strip()
     bank_info = data.get('bank_info', {})
 
     if fiat_amount is None:
@@ -85,7 +83,7 @@ def create_topup_request():
     if (fiat_amount % Decimal('100000')) != 0:
         return jsonify({
             'success': False,
-            'message': 'Số tiền nạp phải chia hết cho 100000. Yêu cầu sẽ bị hủy nếu số tiền hoặc nội dung lệnh không đúng, thời gian hoàn tiền dự kiến 3-5 ngày làm việc.'
+            'message': 'Số tiền nạp (VNĐ) phải chia hết cho 100.000. Khi admin duyệt: 1 VNĐ = 1 BikeCoin (số BikeCoin nhận bằng đúng số tiền nạp).'
         }), 400
     if not transfer_note:
         return jsonify({'success': False, 'message': 'transfer_note is required'}), 400
@@ -95,7 +93,6 @@ def create_topup_request():
             user_id=int(user.get('user_id')),
             fiat_amount=fiat_amount,
             transfer_note=transfer_note,
-            evidence_url=evidence_url,
             bank_info=bank_info
         )
         return jsonify({
@@ -117,6 +114,7 @@ def pending_topup_requests():
             {
                 'transaction_id': tx.transaction_id,
                 'user_id': tx.user_id,
+                'user_full_name': (full_name or '').strip(),
                 'fiat_amount': str(tx.fiat_amount or 0),
                 'currency': tx.currency,
                 'type': tx.type,
@@ -126,7 +124,7 @@ def pending_topup_requests():
                 'evidence_url': tx.evidence_url,
                 'created_at': tx.created_at.isoformat() if tx.created_at else None,
             }
-            for tx in transactions
+            for tx, full_name in transactions
         ]), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -174,6 +172,128 @@ def reject_topup_request(transaction_id):
             'transaction_id': tx.transaction_id,
             'status': tx.status,
             'message': 'Top-up request rejected.'
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@wallet_bp.route('/wallet/withdrawal-requests', methods=['POST'])
+@require_auth
+def create_withdrawal_request():
+    user = g.get('user')
+    if not user or user.get('user_id') is None:
+        return jsonify({'success': False, 'message': 'Authentication required'}), 401
+
+    data = request.get_json() or {}
+    amount = data.get('amount')
+
+    if amount is None:
+        return jsonify({'success': False, 'message': 'amount is required'}), 400
+
+    try:
+        amount = Decimal(str(amount))
+    except Exception:
+        return jsonify({'success': False, 'message': 'amount must be a valid number'}), 400
+
+    if amount <= 0:
+        return jsonify({'success': False, 'message': 'amount must be greater than 0'}), 400
+    if (amount % Decimal('100000')) != 0:
+        return jsonify({
+            'success': False,
+            'message': 'Số tiền rút (BikeCoin) phải chia hết cho 100.000. 1 BikeCoin = 1 VNĐ. Thời gian xử lý dự kiến 1-2 ngày làm việc.'
+        }), 400
+
+    db = SessionLocal()
+    try:
+        account = db.query(UserModel).filter(UserModel.user_id == int(user.get('user_id'))).first()
+        if not account:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        if Decimal(str(account.balance)) < amount:
+            return jsonify({'success': False, 'message': 'Insufficient balance'}), 400
+
+        tx = WalletService.create_withdrawal_request(
+            user_id=int(user.get('user_id')),
+            amount=amount
+        )
+        return jsonify({
+            'success': True,
+            'transaction_id': tx.transaction_id,
+            'status': tx.status,
+            'message': 'Đã tạo lệnh rút. Số tiền đã được tạm giữ trên ví; nếu admin từ chối sẽ hoàn lại. Duyệt thành công thì số đã giữ được xác nhận rút. Xử lý dự kiến 1–2 ngày làm việc.'
+        }), 201
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        db.close()
+
+@wallet_bp.route('/wallet/withdrawal-requests', methods=['GET'])
+@require_auth
+@require_role('ADMIN')
+def pending_withdrawal_requests():
+    try:
+        rows = WalletService.list_pending_withdrawal_requests()
+        payload = []
+        for row in rows:
+            if isinstance(row, tuple) and len(row) >= 2:
+                tx, full_name = row[0], row[1]
+            else:
+                tx, full_name = row, None
+            payload.append({
+                'transaction_id': tx.transaction_id,
+                'user_id': tx.user_id,
+                'user_full_name': (full_name or '').strip(),
+                'amount': str(tx.amount),
+                'fiat_amount': str(tx.fiat_amount if tx.fiat_amount is not None else tx.amount),
+                'currency': tx.currency,
+                'type': tx.type,
+                'status': tx.status,
+                'created_at': tx.created_at.isoformat() if tx.created_at else None,
+            })
+        return jsonify(payload), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@wallet_bp.route('/wallet/withdrawal-requests/<int:transaction_id>/approve', methods=['POST'])
+@require_auth
+@require_role('ADMIN')
+def approve_withdrawal_request(transaction_id):
+    data = request.get_json() or {}
+    admin_note = data.get('admin_note', '').strip()
+
+    try:
+        tx = WalletService.approve_withdrawal_request(
+            transaction_id=transaction_id,
+            admin_id=int(g.user.get('user_id')),
+            admin_note=admin_note
+        )
+        return jsonify({
+            'success': True,
+            'transaction_id': tx.transaction_id,
+            'status': tx.status,
+            'amount': str(tx.amount),
+            'message': 'Withdrawal approved and processed.'
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@wallet_bp.route('/wallet/withdrawal-requests/<int:transaction_id>/reject', methods=['POST'])
+@require_auth
+@require_role('ADMIN')
+def reject_withdrawal_request(transaction_id):
+    data = request.get_json() or {}
+    admin_note = data.get('admin_note', '').strip()
+
+    try:
+        tx = WalletService.reject_withdrawal_request(
+            transaction_id=transaction_id,
+            admin_id=int(g.user.get('user_id')),
+            admin_note=admin_note
+        )
+        return jsonify({
+            'success': True,
+            'transaction_id': tx.transaction_id,
+            'status': tx.status,
+            'message': 'Withdrawal request rejected.'
         }), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400

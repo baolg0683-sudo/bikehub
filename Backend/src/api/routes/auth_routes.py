@@ -358,24 +358,38 @@ def create_user():
                 "message": "Họ tên không được để trống"
             }), 400
 
+        avatar_url = str(data.get('avatar_url', '')).strip() or None
+        if not avatar_url:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Ảnh đại diện là bắt buộc"
+            }), 400
+
+        if not date_of_birth_str:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Ngày sinh là bắt buộc"
+            }), 400
+
         date_of_birth = None
-        if date_of_birth_str:
-            try:
-                date_of_birth = datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
-                today = datetime.now().date()
-                age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
-                if age < 13:
-                    return jsonify({
-                        "success": False,
-                        "error": "Validation error",
-                        "message": "Bạn phải từ 13 tuổi trở lên"
-                    }), 400
-            except ValueError:
+        try:
+            date_of_birth = datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
+            today = datetime.now().date()
+            age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
+            if age < 13:
                 return jsonify({
                     "success": False,
                     "error": "Validation error",
-                    "message": "Ngày sinh không hợp lệ (định dạng: YYYY-MM-DD)"
+                    "message": "Bạn phải từ 13 tuổi trở lên"
                 }), 400
+        except ValueError:
+            return jsonify({
+                "success": False,
+                "error": "Validation error",
+                "message": "Ngày sinh không hợp lệ (định dạng: YYYY-MM-DD)"
+            }), 400
 
         if role not in valid_roles:
             return jsonify({
@@ -408,6 +422,7 @@ def create_user():
         new_user.full_name = full_name  # type: ignore[assignment]
         new_user.phone = cleaned_phone  # type: ignore[assignment]
         new_user.date_of_birth = date_of_birth  # type: ignore[assignment]
+        new_user.avatar_url = avatar_url  # type: ignore[assignment]
         new_user.role = role  # type: ignore[assignment]
 
         db.session.add(new_user)

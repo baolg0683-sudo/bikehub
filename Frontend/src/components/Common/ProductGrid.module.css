@@ -116,6 +116,33 @@
   overflow: hidden;
 }
 
+.verifiedLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: #1d9bf0;
+  font-weight: 700;
+}
+
+.verifiedLabel svg {
+  display: block;
+  font-size: 1rem;
+}
+
+.conditionBadge {
+  display: inline-flex;
+  align-items: center;
+  background: #eef2ff;
+  color: #4338ca;
+  border-radius: 9999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.83rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+}
+
 .productCondition {
   font-size: 0.875rem;
   color: #718096;

@@ -13,6 +13,13 @@
   margin-bottom: 1.5rem;
 }
 
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .headerRow h1 {
   margin: 0;
   font-size: 2rem;
@@ -116,6 +123,24 @@
   font-weight: 700;
 }
 
+.statusGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.hiddenStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  background: #f8d7da;
+  color: #a21d2d;
+  border: 1px solid #f5c2c7;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 .price {
   color: #16a34a;
   font-weight: 700;
@@ -171,9 +196,23 @@
   color: white;
 }
 
-.deleteButton {
+.deleteButton,
+.hideButton,
+.unhideButton {
   background: #ef4444;
   color: white;
+}
+
+.disabledAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-weight: 700;
 }
 
 .promotionStatus {
@@ -185,6 +224,76 @@
   border: 1px solid #c7d2fe;
   border-radius: 0.85rem;
   font-weight: 700;
+}
+
+.inspectionStatusBar {
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  font-weight: 600;
+}
+
+.inspectionStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 0.85rem;
+  font-weight: 700;
+}
+
+.inspectorInfo {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+.inspectionPanel {
+  margin-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.inspectionNote {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.inspectionFormRow {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.inspectionLocationSelect {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  color: #111827;
+}
+
+.inspectionPanelActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.inspectionButton {
+  background: #14b8a6;
+  color: white;
+  border: none;
 }
 
 .deleteButton:disabled {

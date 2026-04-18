@@ -1,0 +1,197 @@
+.inspectorHeader {
+  background-color: #0b1220;
+  border-bottom: 1px solid #222b38;
+  color: #c9d1d9;
+  padding: 18px 24px;
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.brandSection {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logoMark {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #238636;
+  color: white;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.logoTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.logoSubtitle {
+  margin: 0;
+  color: #8b949e;
+  font-size: 0.9rem;
+}
+
+.navSection {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #c9d1d9;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 16px;
+  text-decoration: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.navLink:hover {
+  background: rgba(88, 166, 255, 0.12);
+}
+
+.active {
+  border-color: #58a6ff;
+  background: rgba(88, 166, 255, 0.15);
+}
+
+.navIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.userSection {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.avatarButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.avatarButton:hover {
+  border-color: #58a6ff;
+  background: rgba(88, 166, 255, 0.08);
+}
+
+.userBadge {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #238636;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.userInfo p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.userInfo span {
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+.dropdownArrow {
+  font-size: 0.9rem;
+  color: #8b949e;
+}
+
+.userDropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 220px;
+  background: #0b1220;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+  z-index: 20;
+  padding: 10px 0;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: #c9d1d9;
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dropdownItem:hover {
+  background: rgba(88, 166, 255, 0.08);
+}
+
+.dropdownIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.logoutButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: #f85149;
+  color: white;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.logoutButton:hover {
+  background: #ff6b71;
+}

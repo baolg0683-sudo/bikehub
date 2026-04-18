@@ -3,18 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare, FiHeart, FiPlus } from "react-icons/fi";
+import { FiUser, FiFileText, FiDollarSign, FiLogOut, FiCheckSquare, FiHeart, FiShoppingCart } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { readWishlist } from "../../utils/wishlist";
 import styles from "./Header.module.css";
 
 const Header: React.FC = () => {
   const router = useRouter();
-  const { loggedIn, user, logout } = useAuth();
+  const { loggedIn, user, accessToken, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [savedItems, setSavedItems] = useState<{ listing_id: number; title: string }[]>([]);
+  const [walletBalance, setWalletBalance] = useState<string | null>(null);
+  const [walletCurrency, setWalletCurrency] = useState<string>('B');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isAdminUser = user?.role === 'ADMIN';
+  const isInspectorUser = user?.role === 'INSPECTOR';
 
   const loadSavedWishlist = () => {
     if (!user) {
@@ -38,6 +41,62 @@ const Header: React.FC = () => {
     return () => window.removeEventListener('wishlistUpdated', handler);
   }, [user]);
 
+  const fetchWalletBalance = async () => {
+    if (!loggedIn) {
+      setWalletBalance(null);
+      return;
+    }
+
+    const token = accessToken ?? (typeof window !== 'undefined' ? window.sessionStorage.getItem('access_token') : null);
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/wallet/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Không thể tải thông tin ví');
+      }
+      const data = await response.json();
+      setWalletBalance(data.balance ?? null);
+      setWalletCurrency(data.currency ?? 'B');
+    } catch (error) {
+      console.error('[Header] Wallet fetch failed', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchWalletBalance();
+    return () => {};
+  }, [loggedIn, accessToken]);
+
+  // Auto-refresh wallet balance every 5 seconds when dropdown is open
+  useEffect(() => {
+    if (!showDropdown) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      fetchWalletBalance();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [showDropdown, loggedIn, accessToken]);
+
+  // Listen for wallet update events
+  useEffect(() => {
+    const handleWalletUpdate = () => {
+      fetchWalletBalance();
+    };
+
+    window.addEventListener('walletUpdated', handleWalletUpdate);
+    return () => window.removeEventListener('walletUpdated', handleWalletUpdate);
+  }, [loggedIn, accessToken]);
+
   console.log('[Header] Rendering with loggedIn=%s, user=%o', loggedIn, user);
 
   // Close dropdown when clicking outside
@@ -55,6 +114,11 @@ const Header: React.FC = () => {
       };
     }
   }, [showDropdown]);
+
+  const handleWalletClick = () => {
+    setShowDropdown(false);
+    router.push('/wallet/detail');
+  };
 
   const handleLogout = () => {
     console.log('[Header] Logout clicked');
@@ -99,7 +163,7 @@ const Header: React.FC = () => {
           )}
           {loggedIn && (
             <div className={styles.userSection} ref={dropdownRef}>
-              {!isAdminUser && (
+              {!isAdminUser && !isInspectorUser && (
                 <Link href="/post" className={styles.btnPost}>
                   Đăng tin
                 </Link>
@@ -123,7 +187,20 @@ const Header: React.FC = () => {
                     <FiUser className={styles.dropdownIcon} />
                     <span>Thông tin cá nhân</span>
                   </Link>
-                  {!isAdminUser && (
+                  <div className={styles.dropdownSection}>
+                    <div className={styles.dropdownSectionTitle}>Ví của bạn</div>
+                    <button
+                      type="button"
+                      onClick={handleWalletClick}
+                      className={styles.dropdownItem}
+                    >
+                      <FiDollarSign className={styles.dropdownIcon} />
+                      <span>
+                        Số dư: {walletBalance !== null ? `${walletBalance} ${walletCurrency}` : 'Đang tải...'}
+                      </span>
+                    </button>
+                  </div>
+                  {!isAdminUser && !isInspectorUser && (
                     <>
                       <Link href="/wishlist" className={styles.dropdownItem}>
                         <FiHeart className={styles.dropdownIcon} />
@@ -132,6 +209,10 @@ const Header: React.FC = () => {
                       <Link href="/manage" className={styles.dropdownItem}>
                         <FiFileText className={styles.dropdownIcon} />
                         <span>Quản lý tin đăng</span>
+                      </Link>
+                      <Link href="/orders" className={styles.dropdownItem}>
+                        <FiShoppingCart className={styles.dropdownIcon} />
+                        <span>Quản lý đơn hàng</span>
                       </Link>
                     </>
                   )}

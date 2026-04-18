@@ -6,6 +6,14 @@ import { useAuth } from "../../context/AuthContext";
 import { useChat, type ChatTarget } from "../../context/ChatContext";
 import styles from "./ChatWidget.module.css";
 
+function chatPeerId(target: ChatTarget): number {
+  return target.peerUserId ?? target.sellerId;
+}
+
+function chatPeerName(target: ChatTarget): string {
+  return target.peerName ?? target.sellerName;
+}
+
 interface ConversationSummary {
   peer_id: number;
   peer_name: string;
@@ -13,6 +21,8 @@ interface ConversationSummary {
   listing_title: string;
   last_message: string;
   last_at: string | null;
+  /** Đơn đang trong giai đoạn chat giao dịch (cọc đang giữ / bàn giao / tranh chấp). */
+  trade_order_id?: number | null;
 }
 
 interface MessageItem {
@@ -28,7 +38,7 @@ interface MessageItem {
 
 export function ChatWidget() {
   const { loggedIn, accessToken, user } = useAuth();
-  const { open, currentTarget, openChat, closeConversation } = useChat();
+  const { open, currentTarget, openChat, closeConversation, dismissConversationTarget } = useChat();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationSummary | undefined>(undefined);
   const [messages, setMessages] = useState<MessageItem[]>([]);
@@ -47,6 +57,10 @@ export function ChatWidget() {
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
 
   const conversationKey = useCallback((conversation: ConversationSummary) => `${conversation.listing_id}-${conversation.peer_id}`, []);
+
+  const targetMatchesConversation = useCallback((target: ChatTarget, conversation: ConversationSummary) => {
+    return conversation.listing_id === target.listingId && conversation.peer_id === chatPeerId(target);
+  }, []);
 
   const apiBaseUrl = typeof window !== "undefined"
     ? process.env.NEXT_PUBLIC_API_URL ?? ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:9999/api" : "/api")
@@ -76,6 +90,8 @@ export function ChatWidget() {
 
   const isVideoUrl = (url: string) => /\.(mp4|mov|webm|avi|mkv)(\?|$)/i.test(url);
   const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp)(\?|$)/i.test(url);
+
+  const inspectionLabel = user?.role === 'INSPECTOR' ? ' [Kiểm định]' : '';
 
   const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -400,11 +416,13 @@ export function ChatWidget() {
       return;
     }
 
-    const currentTargetChanged = currentTarget && (
-      !currentTargetSelectionRef.current ||
-      currentTargetSelectionRef.current.listingId !== currentTarget.listingId ||
-      currentTargetSelectionRef.current.sellerId !== currentTarget.sellerId
-    );
+    const sameTarget = (a: ChatTarget | undefined, b: ChatTarget) =>
+      !!a &&
+      a.listingId === b.listingId &&
+      chatPeerId(a) === chatPeerId(b) &&
+      (a.orderId ?? 0) === (b.orderId ?? 0);
+
+    const currentTargetChanged = currentTarget && !sameTarget(currentTargetSelectionRef.current, currentTarget);
 
     if (currentTarget && (currentTargetChanged || !selectedConversation)) {
       if (currentTargetChanged) {
@@ -414,7 +432,7 @@ export function ChatWidget() {
       const matchingExisting = conversations.find(
         (conversation) =>
           conversation.listing_id === currentTarget.listingId &&
-          conversation.peer_id === currentTarget.sellerId
+          conversation.peer_id === chatPeerId(currentTarget)
       );
 
       if (matchingExisting) {
@@ -423,12 +441,14 @@ export function ChatWidget() {
       }
 
       const targetSummary: ConversationSummary = {
-        peer_id: currentTarget.sellerId,
-        peer_name: currentTarget.sellerName,
+        peer_id: chatPeerId(currentTarget),
+        peer_name: chatPeerName(currentTarget),
         listing_id: currentTarget.listingId,
         listing_title: currentTarget.listingTitle,
         last_message: "",
         last_at: null,
+        trade_order_id:
+          currentTarget.chatKind === "order_trade" && currentTarget.orderId ? currentTarget.orderId : undefined,
       };
 
       setSelectedConversation(targetSummary);
@@ -441,7 +461,58 @@ export function ChatWidget() {
     }
   }, [open, currentTarget, conversations, fetchMessages, selectedConversation]);
 
+  useEffect(() => {
+    const tradeOrderIdForPoll =
+      selectedConversation?.trade_order_id ??
+      (currentTarget?.chatKind === "order_trade" &&
+      currentTarget.orderId &&
+      selectedConversation &&
+      targetMatchesConversation(currentTarget, selectedConversation)
+        ? currentTarget.orderId
+        : currentTarget?.chatKind === "order_trade" && currentTarget.orderId && !selectedConversation
+          ? currentTarget.orderId
+          : undefined);
+
+    if (!open || !accessToken || !tradeOrderIdForPoll) {
+      return;
+    }
+    const orderId = tradeOrderIdForPoll;
+    const ended = new Set(["COMPLETED", "CANCELLED_BY_BUYER", "REJECTED_BY_BUYER"]);
+
+    const check = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/orders/${orderId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const data = await response.json().catch(() => ({} as { status?: string }));
+        if (response.ok && data?.status && ended.has(String(data.status))) {
+          closeConversation();
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    void check();
+    const interval = setInterval(() => void check(), 4000);
+    return () => clearInterval(interval);
+  }, [
+    open,
+    accessToken,
+    apiBaseUrl,
+    closeConversation,
+    selectedConversation?.trade_order_id,
+    selectedConversation,
+    currentTarget?.chatKind,
+    currentTarget?.orderId,
+    currentTarget,
+    targetMatchesConversation,
+  ]);
+
   const selectConversation = (conversation: ConversationSummary) => {
+    if (currentTarget && !targetMatchesConversation(currentTarget, conversation)) {
+      dismissConversationTarget();
+    }
     const key = conversationKey(conversation);
     const alreadyRead = conversation.last_at && lastReadAt[key] && conversation.last_at <= lastReadAt[key];
     if (!alreadyRead) {
@@ -464,8 +535,8 @@ export function ChatWidget() {
     const conversation = selectedConversation ??
       (currentTarget
         ? {
-            peer_id: currentTarget.sellerId,
-            peer_name: currentTarget.sellerName,
+            peer_id: chatPeerId(currentTarget),
+            peer_name: chatPeerName(currentTarget),
             listing_id: currentTarget.listingId,
             listing_title: currentTarget.listingTitle,
             last_message: "",
@@ -546,7 +617,13 @@ export function ChatWidget() {
   const conversationTitle = selectedConversation?.listing_title || currentTarget?.listingTitle || "Chưa chọn cuộc trò chuyện";
   const listingId = selectedConversation?.listing_id || currentTarget?.listingId;
   const listingUrl = listingId ? `/listing/${listingId}` : "/";
-  const partnerName = selectedConversation?.peer_name || currentTarget?.sellerName || "Người trò chuyện";
+  const partnerName =
+    selectedConversation?.peer_name || (currentTarget ? chatPeerName(currentTarget) : "") || "Người trò chuyện";
+
+  const tradeOrderLabelId =
+    (currentTarget?.chatKind === "order_trade" && currentTarget.orderId ? currentTarget.orderId : undefined) ??
+    selectedConversation?.trade_order_id ??
+    undefined;
 
   return (
     <div className={`${styles.chatWidget} ${open ? styles.open : ""}`}>
@@ -590,7 +667,13 @@ export function ChatWidget() {
                       onClick={() => selectConversation(conv)}
                     >
                       <div className={styles.conversationItemContent}>
-                        <strong>{conv.listing_title}</strong>
+                        <strong>
+                          {conv.listing_title}
+                          {inspectionLabel}
+                          {conv.trade_order_id ? (
+                            <span className={styles.tradeChatBadge}> Giao dịch · #{conv.trade_order_id}</span>
+                          ) : null}
+                        </strong>
                         <p>{conv.peer_name}</p>
                         <p className={styles.conversationMeta}>{conv.last_message}</p>
                       </div>
@@ -627,7 +710,10 @@ export function ChatWidget() {
                   ) : (
                     <span className={styles.detailTitle}>{conversationTitle}</span>
                   )}
-                  <p className={styles.detailSubtitle}>Đang trò chuyện với: {partnerName}</p>
+                  <p className={styles.detailSubtitle}>Đang trò chuyện với: {partnerName}{inspectionLabel}</p>
+                  {tradeOrderLabelId ? (
+                    <span className={styles.tradeChatBadge}>Chat giao dịch · Đơn #{tradeOrderLabelId}</span>
+                  ) : null}
                 </div>
               </div>
 
@@ -673,7 +759,7 @@ export function ChatWidget() {
                           </div>
                         )}
                         <p className={styles.messageMeta}>
-                          {fromMe ? "Bạn" : partnerName}
+                          {fromMe ? "Bạn" : partnerName}{inspectionLabel}
                           {message.created_at ? ` • ${new Date(message.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}` : ""}
                         </p>
                       </div>

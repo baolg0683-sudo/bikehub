@@ -64,7 +64,7 @@ const formatPrice = (value: string) => {
   if (Number.isNaN(number) || number === 0) {
     return "Liên hệ";
   }
-  return number.toLocaleString("vi-VN") + " đ";
+  return number.toLocaleString("vi-VN") + " BikeCoin";
 };
 
 const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, condition, price, isPromoted, isVerified, isWishlisted, onToggleWishlist }) => {
@@ -95,10 +95,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ listing_id, image, title, con
         <h4 className={styles.productTitle}>
           {title}
           {isVerified && (
-            <FiCheckCircle
-              style={{ color: "#1d9bf0", marginLeft: "6px", fontSize: "1.1rem", verticalAlign: "text-bottom" }}
-              title="Xe đã qua kiểm định chất lượng"
-            />
+            <span className={styles.verifiedLabel} title="Xe đã qua kiểm định chất lượng">
+              <FiCheckCircle />
+              Đã kiểm định
+            </span>
           )}
         </h4>
         <p className={styles.productCondition}>
@@ -116,6 +116,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
   const [listings, setListings] = useState<ListingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const OTHER_BRANDS_VALUE = "__other__";
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedMaterial, setSelectedMaterial] = useState("");
   const [selectedCondition, setSelectedCondition] = useState("");
@@ -148,7 +149,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
           params.append("type", selectedType);
         }
 
-        if (selectedBrand) {
+        if (selectedBrand && selectedBrand !== OTHER_BRANDS_VALUE) {
           params.append("brand", selectedBrand);
         }
 
@@ -164,7 +165,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
         if (!response.ok) {
           throw new Error(`Lỗi tải danh sách: ${response.status}`);
         }
-        const data: ListingData[] = await response.json();
+        let data: ListingData[] = await response.json();
+        if (selectedBrand === OTHER_BRANDS_VALUE) {
+          const knownBrands = new Set(brands.map((brand) => brand.toLowerCase()));
+          data = data.filter(
+            (item) => !knownBrands.has((item.bike_details?.brand || "").toLowerCase())
+          );
+        }
         setListings(data);
       } catch (err) {
         console.error(err);
@@ -332,6 +339,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ filters, brands, materials, c
                     {brand}
                   </option>
                 ))}
+                <option value={OTHER_BRANDS_VALUE}>Các hãng khác</option>
               </select>
             </div>
 

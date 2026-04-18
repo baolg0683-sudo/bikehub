@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../context/AuthContext';
-import { resolveAccessToken } from '../../../utils/accessToken';
+import { useAuth } from '@/context/AuthContext';
+import { resolveAccessToken } from '@/utils/accessToken';
 import { AdminSidebar } from '../AdminSidebar';
 import adminStyles from '../page.module.css';
 import styles from '../bank-verifications/bank-verifications.module.css';

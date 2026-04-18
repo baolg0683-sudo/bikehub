@@ -366,6 +366,9 @@ def request_promotion(listing_id):
         if listing.status == 'SOLD':
             return jsonify({"success": False, "message": "Không thể đẩy tin cho tin đã bán"}), 400
 
+        if listing.inspection_status != 'PASSED':
+            return jsonify({"success": False, "message": "Chưa kiểm định đạt, không thể đẩy tin"}), 400
+
         listing.status = 'PENDING_PROMOTION'
         db.commit()
 
@@ -472,9 +475,7 @@ def get_pending_listings():
         mine = str(request.args.get('mine', '')).lower() in ('1', 'true', 'yes')
         if mine:
             rows = db.query(Listing).filter(
-                Listing.inspection_status == 'SCHEDULED',
-                Listing.assigned_inspector_id == int(user.get('user_id')),
-                Listing.is_hidden == False
+                Listing.assigned_inspector_id == int(user.get('user_id'))
             ).order_by(Listing.created_at.desc()).all()
         else:
             rows = db.query(Listing).filter(
@@ -482,6 +483,30 @@ def get_pending_listings():
                 Listing.assigned_inspector_id == None,
                 Listing.is_hidden == False
             ).order_by(Listing.created_at.desc()).all()
+
+        result = [serialize_listing(r, db) for r in rows]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/pending-approval', methods=['GET'])
+@require_auth
+def get_pending_approval_listings():
+    """Return all listings waiting approval without inspection request."""
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Listing).filter(
+            Listing.status == 'PENDING',
+            Listing.inspection_status.in_((None, 'NONE')),
+            Listing.is_hidden == False
+        ).order_by(Listing.created_at.desc()).all()
 
         result = [serialize_listing(r, db) for r in rows]
         return jsonify(result), 200
@@ -609,18 +634,25 @@ def inspect_listing(listing_id):
             return jsonify({"success": False, "message": "Listing not found"}), 404
 
         if action == 'PASS':
-            listing.is_verified = True
-            listing.status = 'AVAILABLE'
-            listing.inspection_status = 'PASSED'
-            listing.is_hidden = False
+            if listing.status == 'PENDING' and (listing.inspection_status is None or listing.inspection_status == 'NONE'):
+                listing.is_verified = False
+                listing.status = 'AVAILABLE'
+                listing.inspection_status = 'REVIEWED'
+                listing.is_hidden = False
+            else:
+                listing.is_verified = True
+                listing.status = 'AVAILABLE'
+                listing.inspection_status = 'PASSED'
+                listing.is_hidden = False
         else:
             listing.is_verified = False
-            listing.status = 'HIDDEN'
+            listing.status = 'PENDING'
             listing.inspection_status = 'FAILED'
-            listing.is_hidden = True
-            listing.inspection_notes = overall_verdict or 'Không đạt kiểm định. Vui lòng liên hệ người kiểm định để điều chỉnh.'
+            listing.is_hidden = False
+            listing.inspection_notes = overall_verdict or 'Từ chối duyệt tin. Vui lòng chỉnh sửa và đăng ký kiểm định lại.'
 
         # Update stored bicycle condition from inspection result so listing UI shows the inspector-entered value
+        condition_value_int = None
         condition_value = technical_details.get('condition_percent')
         if condition_value is not None:
             try:
@@ -672,6 +704,9 @@ def delete_listing(listing_id):
         listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == seller_id).first()
         if not listing:
             return jsonify({"success": False, "message": "Listing not found or unauthorized"}), 404
+
+        if listing.inspection_status in ('REQUESTED', 'SCHEDULED', 'PASSED'):
+            return jsonify({"success": False, "message": "Không thể xóa tin đã gửi kiểm định hoặc đã kiểm định."}), 400
 
         db.delete(listing)
         db.commit()
@@ -752,7 +787,7 @@ def update_listing(listing_id):
             listing = db.query(Listing).filter(
                 Listing.listing_id == listing_id,
                 Listing.assigned_inspector_id == user_id,
-                Listing.inspection_status == 'SCHEDULED'
+                Listing.inspection_status.in_(['SCHEDULED', 'PASSED'])
             ).first()
         else:
             listing = db.query(Listing).filter(Listing.listing_id == listing_id, Listing.seller_id == user_id).first()
@@ -760,10 +795,21 @@ def update_listing(listing_id):
         if not listing:
             return jsonify({"success": False, "message": "Listing not found or unauthorized"}), 404
 
+        if listing.status == 'SOLD':
+            return jsonify({"success": False, "message": "Cannot modify a sold listing."}), 400
+
         listing.title = title
         listing.description = description
         listing.price = price
         listing.status = data.get('status', listing.status)
+        if 'is_hidden' in data:
+            listing.is_hidden = bool(data.get('is_hidden'))
+        elif listing.status == 'HIDDEN':
+            listing.is_hidden = True
+        elif listing.status == 'SOLD':
+            listing.is_hidden = True
+        elif listing.status in ('AVAILABLE', 'PENDING', 'PENDING_PROMOTION'):
+            listing.is_hidden = False
 
         bicycle = db.query(Bicycle).filter(Bicycle.listing_id == listing_id).first()
         if not bicycle:
@@ -814,6 +860,98 @@ def update_listing(listing_id):
         }), 200
     except Exception as e:
         db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/inspector-history', methods=['GET'])
+@require_auth
+def get_inspector_history():
+    """Return listings processed by the inspector."""
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    inspector_id = int(user.get('user_id'))
+    history_type = request.args.get('type', 'all')  # 'inspection', 'approval', or 'all'
+
+    db = SessionLocal()
+    try:
+        query = db.query(Listing).filter(
+            Listing.assigned_inspector_id == inspector_id
+        )
+
+        if history_type == 'inspection':
+            # Listings that have been inspected (PASSED or FAILED)
+            query = query.filter(Listing.inspection_status.in_(['PASSED', 'FAILED']))
+        elif history_type == 'approval':
+            # Listings that have been approved/rejected (REVIEWED status)
+            query = query.filter(Listing.inspection_status == 'REVIEWED')
+        else:
+            # All processed listings
+            query = query.filter(Listing.inspection_status.in_(['PASSED', 'FAILED', 'REVIEWED']))
+
+        listings = query.all()
+
+        result = []
+        for listing in listings:
+            serialized = serialize_listing(listing, db)
+            # Add history type for frontend filtering
+            if listing.inspection_status == 'REVIEWED':
+                serialized['historyType'] = 'approval'
+            else:
+                serialized['historyType'] = 'inspection'
+            result.append(serialized)
+
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@listing_bp.route('/listings/inspector-history', methods=['GET'])
+@require_auth
+def get_inspector_history():
+    """Return listings processed by the inspector."""
+    user = g.get('user')
+    if not user or user.get('role') != 'INSPECTOR':
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    inspector_id = int(user.get('user_id'))
+    history_type = request.args.get('type', 'all')  # 'inspection', 'approval', or 'all'
+
+    db = SessionLocal()
+    try:
+        query = db.query(Listing).filter(
+            Listing.assigned_inspector_id == inspector_id
+        )
+
+        if history_type == 'inspection':
+            # Listings that have been inspected (PASSED or FAILED)
+            query = query.filter(Listing.inspection_status.in_(['PASSED', 'FAILED']))
+        elif history_type == 'approval':
+            # Listings that have been approved/rejected (REVIEWED status)
+            query = query.filter(Listing.inspection_status == 'REVIEWED')
+        else:
+            # All processed listings
+            query = query.filter(Listing.inspection_status.in_(['PASSED', 'FAILED', 'REVIEWED']))
+
+        listings = query.all()
+
+        result = []
+        for listing in listings:
+            serialized = serialize_listing(listing, db)
+            # Add history type for frontend filtering
+            if listing.inspection_status == 'REVIEWED':
+                serialized['historyType'] = 'approval'
+            else:
+                serialized['historyType'] = 'inspection'
+            result.append(serialized)
+
+        return jsonify(result), 200
+    except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         db.close()

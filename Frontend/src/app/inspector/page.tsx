@@ -34,13 +34,15 @@ export default function InspectorDashboard() {
   const { user, loggedIn, initialized, accessToken } = useAuth();
   const router = useRouter();
   const [pendingListings, setPendingListings] = useState<Listing[]>([]);
-  const [myInspections, setMyInspections] = useState<Listing[]>([]);
+  const [pendingApprovalListings, setPendingApprovalListings] = useState<Listing[]>([]);
+  const [historyListings, setHistoryListings] = useState<Listing[]>([]);
+  const [viewMode, setViewMode] = useState<'pending' | 'approval' | 'history'>('pending');
   const [areaFilter, setAreaFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [showAccepted, setShowAccepted] = useState(false);
 
   useEffect(() => {
     if (!initialized) {
@@ -78,9 +80,9 @@ export default function InspectorDashboard() {
       }
     };
 
-    const fetchAssignedInspections = async () => {
+    const fetchPendingApprovalListings = async () => {
       try {
-        const response = await fetch('/api/listings/pending-inspection?mine=true', {
+        const response = await fetch('/api/listings/pending-approval', {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
@@ -88,17 +90,48 @@ export default function InspectorDashboard() {
         });
 
         if (!response.ok) {
-          throw new Error('Không thể tải danh sách đã nhận');
+          throw new Error('Không thể tải danh sách chờ duyệt');
         }
 
         const data = await response.json();
-        setMyInspections(data);
+        setPendingApprovalListings(data);
       } catch (err: any) {
         setError(err.message || 'Có lỗi xảy ra');
       }
     };
 
-    Promise.all([fetchPendingListings(), fetchAssignedInspections()]).finally(() => setLoading(false));
+    const fetchHistoryListings = async () => {
+      try {
+        // Fetch inspection history
+        const inspectionResponse = await fetch('/api/listings/inspector-history?type=inspection', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        // Fetch approval history  
+        const approvalResponse = await fetch('/api/listings/inspector-history?type=approval', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const inspectionData = inspectionResponse.ok ? await inspectionResponse.json() : [];
+        const approvalData = approvalResponse.ok ? await approvalResponse.json() : [];
+
+        // Mark the type for filtering
+        const inspectionListings = inspectionData.map((item: any) => ({ ...item, historyType: 'inspection' }));
+        const approvalListings = approvalData.map((item: any) => ({ ...item, historyType: 'approval' }));
+
+        setHistoryListings([...inspectionListings, ...approvalListings]);
+      } catch (err: any) {
+        setError(err.message || 'Có lỗi xảy ra khi tải lịch sử');
+      }
+    };
+
+    Promise.all([fetchPendingListings(), fetchPendingApprovalListings(), fetchHistoryListings()]).finally(() => setLoading(false));
   }, [loggedIn, user, router, accessToken, refreshKey, initialized]);
 
   const filteredPendingListings = useMemo(() => {
@@ -109,13 +142,18 @@ export default function InspectorDashboard() {
     });
   }, [areaFilter, pendingListings]);
 
-  const filteredAssignedListings = useMemo(() => {
-    if (areaFilter === 'all') return myInspections;
-    return myInspections.filter((listing) => {
+  const filteredPendingApprovalListings = useMemo(() => {
+    if (areaFilter === 'all') return pendingApprovalListings;
+    return pendingApprovalListings.filter((listing) => {
       const notes = (listing as any).inspection_notes || '';
       return notes.toLowerCase().includes(areaFilter.toLowerCase());
     });
-  }, [areaFilter, myInspections]);
+  }, [areaFilter, pendingApprovalListings]);
+
+  const filteredHistoryListings = useMemo(() => {
+    if (typeFilter === 'all') return historyListings;
+    return historyListings.filter((listing) => (listing as any).historyType === typeFilter);
+  }, [typeFilter, historyListings]);
 
   if (loading) {
     return (
@@ -170,65 +208,109 @@ export default function InspectorDashboard() {
     }
   };
 
-  const listingsToRender = showAccepted ? filteredAssignedListings : filteredPendingListings;
-  const emptyText = showAccepted ? 'Bạn chưa nhận kiểm định nào.' : 'Không có xe chờ kiểm định.';
+  const listingsToRender =
+    viewMode === 'approval'
+      ? filteredPendingApprovalListings
+      : viewMode === 'history'
+      ? filteredHistoryListings
+      : filteredPendingListings;
+  const emptyText =
+    viewMode === 'approval'
+      ? 'Không có xe chờ duyệt.'
+      : viewMode === 'history'
+      ? 'Bạn chưa xử lý xe nào.'
+      : 'Không có xe chờ kiểm định.';
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Khu Vực Kiểm Định</h1>
-          <p className={styles.subtitle}>Danh sách xe đang chờ được xác thực chất lượng</p>
+          <p className={styles.subtitle}>Danh sách kiểm định, danh sách chờ duyệt và lịch sử các xe bạn đã xử lý</p>
         </div>
 
         <div className={styles.headerActions}>
           <button
             type="button"
-            className={`${styles.toggleViewBtn} ${!showAccepted ? styles.activeViewBtn : ''}`}
-            onClick={() => setShowAccepted(false)}
+            className={`${styles.toggleViewBtn} ${viewMode === 'pending' ? styles.activeViewBtn : ''}`}
+            onClick={() => setViewMode('pending')}
           >
-            Danh sách chờ
+            Danh sách kiểm định
           </button>
           <button
             type="button"
-            className={`${styles.toggleViewBtn} ${showAccepted ? styles.activeViewBtn : ''}`}
-            onClick={() => setShowAccepted(true)}
+            className={`${styles.toggleViewBtn} ${viewMode === 'approval' ? styles.activeViewBtn : ''}`}
+            onClick={() => setViewMode('approval')}
           >
-            Danh sách kiểm định
+            Danh sách chờ duyệt
+          </button>
+          <button
+            type="button"
+            className={`${styles.toggleViewBtn} ${viewMode === 'history' ? styles.activeViewBtn : ''}`}
+            onClick={() => setViewMode('history')}
+          >
+            Lịch sử
           </button>
         </div>
       </header>
 
       <div className={styles.filterRow}>
-        <label htmlFor="areaFilter" className={styles.filterLabel}>
-          Lọc khu vực
-        </label>
-        <select
-          id="areaFilter"
-          className={styles.filterSelect}
-          value={areaFilter}
-          onChange={(event) => setAreaFilter(event.target.value)}
-        >
-          <option value="all">Tất cả</option>
-          <option value="tp hcm">TP. HCM</option>
-          <option value="hà nội">Hà Nội</option>
-          <option value="đà nẵng">Đà Nẵng</option>
-          <option value="khác">Khác</option>
-        </select>
+        {viewMode === 'history' ? (
+          <>
+            <label htmlFor="typeFilter" className={styles.filterLabel}>
+              Loại xử lý
+            </label>
+            <select
+              id="typeFilter"
+              className={styles.filterSelect}
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+            >
+              <option value="all">Tất cả</option>
+              <option value="inspection">Tin kiểm định</option>
+              <option value="approval">Tin kiểm duyệt</option>
+            </select>
+          </>
+        ) : viewMode === 'pending' ? (
+          <>
+            <label htmlFor="areaFilter" className={styles.filterLabel}>
+              Lọc khu vực
+            </label>
+            <select
+              id="areaFilter"
+              className={styles.filterSelect}
+              value={areaFilter}
+              onChange={(event) => setAreaFilter(event.target.value)}
+            >
+              <option value="all">Tất cả</option>
+              <option value="tp hcm">TP. HCM</option>
+              <option value="hà nội">Hà Nội</option>
+              <option value="đà nẵng">Đà Nẵng</option>
+              <option value="khác">Khác</option>
+            </select>
+          </>
+        ) : null}
       </div>
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <div>
-            <h2>{showAccepted ? 'Danh sách kiểm định đã nhận' : 'Yêu cầu kiểm định chờ'}</h2>
-            <p>
-              {showAccepted
-                ? 'Xe bạn đã nhận kiểm định, đang chờ xử lý.'
-                : 'Danh sách xe người bán đã gửi yêu cầu, chưa được nhận kiểm định.'}
-            </p>
+            <div>
+              <h2>
+                {viewMode === 'history'
+                  ? 'Lịch sử'
+                  : viewMode === 'approval'
+                  ? 'Danh sách chờ duyệt'
+                  : 'Yêu cầu kiểm định chờ'}
+              </h2>
+              <p>
+                {viewMode === 'history'
+                  ? 'Các xe bạn đã xử lý kiểm định và duyệt tin.'
+                  : viewMode === 'approval'
+                  ? 'Các xe đăng tin chờ duyệt, inspector có thể xem và chấp nhận hoặc từ chối.'
+                  : 'Danh sách xe người bán đã gửi yêu cầu kiểm định chưa được nhận.'}
+              </p>
+            </div>
           </div>
-        </div>
-
         {listingsToRender.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#8b949e', marginTop: '30px' }}>
             <h2>{emptyText}</h2>
@@ -237,7 +319,13 @@ export default function InspectorDashboard() {
           <div className={styles.grid}>
             {listingsToRender.map((listing) => (
               <div key={listing.listing_id} className={styles.card}>
-                <div className={styles.statusBadge}>{showAccepted ? 'ĐÃ NHẬN KIỂM ĐỊNH' : 'CHỜ KIỂM ĐỊNH'}</div>
+                <div className={styles.statusBadge}>
+                  {viewMode === 'history'
+                    ? ((listing as any).historyType === 'inspection' ? 'ĐÃ KIỂM ĐỊNH' : 'ĐÃ DUYỆT TIN')
+                    : viewMode === 'approval'
+                    ? 'CHỜ DUYỆT'
+                    : 'CHỜ KIỂM ĐỊNH'}
+                </div>
                 <div className={styles.cardImageWrapper}>
                   {listing.images && listing.images.length > 0 ? (
                     <img src={listing.images[0]} alt={listing.title} className={styles.cardImage} />
@@ -276,11 +364,7 @@ export default function InspectorDashboard() {
                 </div>
 
                 <div className={styles.cardActionWrapper}>
-                  {showAccepted ? (
-                    <Link href={`/inspector/${listing.listing_id}`} className={styles.inspectBtn}>
-                      Xem chi tiết
-                    </Link>
-                  ) : (
+                  {viewMode === 'pending' ? (
                     <button
                       type="button"
                       className={styles.inspectBtn}
@@ -289,6 +373,10 @@ export default function InspectorDashboard() {
                     >
                       {actionLoading === listing.listing_id ? 'Đang nhận...' : 'Nhận kiểm định'}
                     </button>
+                  ) : (
+                    <Link href={`/inspector/${listing.listing_id}`} className={styles.inspectBtn}>
+                      {viewMode === 'approval' ? 'Kiểm tra' : 'Xem chi tiết'}
+                    </Link>
                   )}
                 </div>
               </div>

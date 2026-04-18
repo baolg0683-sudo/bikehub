@@ -120,7 +120,9 @@ class OrderService:
 
             # Update listing
             listing = db.query(Listing).filter(Listing.listing_id == order.listing_id).first()
-            listing.status = 'SOLD'
+            if listing:
+                listing.status = 'SOLD'
+                listing.is_hidden = True
 
             db.commit()
             return order
@@ -160,7 +162,9 @@ class OrderService:
 
             # Update listing
             listing = db.query(Listing).filter(Listing.listing_id == order.listing_id).first()
-            listing.status = 'AVAILABLE'
+            if listing:
+                listing.status = 'AVAILABLE'
+                listing.is_hidden = False
 
             db.commit()
             return order

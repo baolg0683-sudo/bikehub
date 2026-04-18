@@ -262,6 +262,14 @@
   color: #c9d1d9;
 }
 
+.inputField:disabled,
+.textareaField:disabled,
+select:disabled {
+  background-color: #141a24;
+  color: #8b949e;
+  cursor: not-allowed;
+}
+
 .textareaField {
   min-height: 120px;
   resize: vertical;

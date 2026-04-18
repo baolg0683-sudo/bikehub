@@ -354,8 +354,11 @@ class OrderService:
             if not order or user_id not in (order.buyer_id, order.seller_id):
                 raise ValueError('Không có quyền báo cáo đơn này')
             
-            # Kiểm tra xem đã tồn tại tranh chấp chưa
-            existing_dispute = db.query(OrderDispute).filter(OrderDispute.order_id == order_id).first()
+            # Kiểm tra xem đã tồn tại tranh chấp chưa (không bị hủy)
+            existing_dispute = db.query(OrderDispute).filter(
+                OrderDispute.order_id == order_id,
+                OrderDispute.cancelled_at == None
+            ).first()
             if existing_dispute:
                 raise ValueError('Đơn này đã có phiếu tranh chấp - chờ xử lý')
             

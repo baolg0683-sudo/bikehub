@@ -485,7 +485,7 @@ export default function OrdersPage() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3>Báo cáo tranh chấp</h3>
             <p style={{ color: "#475569", fontSize: "0.9rem" }}>
-              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự. <strong style={{ color: '#e11d48' }}>Khu vực là bắt buộc</strong>.
+              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự. 
             </p>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>
               Khu vực <span style={{ color: '#e11d48' }}>*</span>

@@ -134,15 +134,46 @@ def delete_conversation():
 @interactions_bp.post("/conversations/report")
 @require_auth
 def report_conversation():
+    from infrastructure.models.reports.user_report_model import UserReport
+    from infrastructure.databases import SessionLocal
+    from sqlalchemy.exc import IntegrityError
     try:
         payload = request.json or {}
         listing_id = payload.get("listing_id")
         peer_id = payload.get("peer_id")
+        reason = (payload.get("reason") or "").strip()
         if not listing_id or not peer_id:
             return jsonify({"error": "listing_id and peer_id are required"}), 400
+        if not reason:
+            return jsonify({"error": "reason is required"}), 400
 
-        report = g.interaction_service.report_conversation(g.user, payload)
-        return success(report, 200)
+        reporter_id = int(g.user.get("user_id"))
+        target_id = f"{listing_id}_{peer_id}"
+
+        db_session = SessionLocal()
+        try:
+            existing = db_session.query(UserReport).filter(
+                UserReport.reporter_id == reporter_id,
+                UserReport.target_type == 'conversation',
+                UserReport.target_id == target_id,
+            ).first()
+            if existing:
+                return jsonify({"success": False, "already_reported": True, "message": "Bạn đã báo cáo cuộc trò chuyện này rồi."}), 409
+
+            report = UserReport(
+                reporter_id=reporter_id,
+                target_type='conversation',
+                target_id=target_id,
+                reason=reason,
+            )
+            db_session.add(report)
+            db_session.commit()
+            return jsonify({"success": True, "message": "Báo cáo đã được gửi."}), 200
+        except IntegrityError:
+            db_session.rollback()
+            return jsonify({"success": False, "already_reported": True, "message": "Bạn đã báo cáo cuộc trò chuyện này rồi."}), 409
+        finally:
+            db_session.close()
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

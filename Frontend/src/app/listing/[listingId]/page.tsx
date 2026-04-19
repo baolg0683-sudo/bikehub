@@ -63,6 +63,12 @@ export default function ListingDetailPage() {
   const [depositPercent, setDepositPercent] = useState<25 | 50 | 100>(25);
   const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
   const [purchaseError, setPurchaseError] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("inappropriate");
+  const [reportCustom, setReportCustom] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportMsg, setReportMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [alreadyReported, setAlreadyReported] = useState(false);
   const { openConversation } = useChat();
   const { loggedIn, user, accessToken } = useAuth();
   const router = useRouter();
@@ -135,6 +141,14 @@ export default function ListingDetailPage() {
         const detail: ListingDetail = await response.json();
         setListing(detail);
         setActiveImageIndex(0);
+
+        // Check if current user already reported this listing
+        const token = accessToken ?? (typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null);
+        if (token) {
+          fetch(`/api/listings/report/check?listing_id=${detail.listing_id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then(r => r.json()).then(d => { if (d.reported) setAlreadyReported(true); }).catch(() => {});
+        }
 
         const brand = detail.bike_details?.brand || "";
         const type = detail.bike_details?.type || "";
@@ -302,6 +316,46 @@ export default function ListingDetailPage() {
   const images = listing.images?.length ? listing.images : listing.bike_details?.primary_image_url ? [listing.bike_details.primary_image_url] : ["/assets/bike.png"];
   const isOwnListing = currentUserId !== null && currentUserId === listing.seller_id;
 
+  const submitReport = async () => {
+    if (reportReason === "other" && !reportCustom.trim()) {
+      setReportMsg({ type: "error", text: "Vui lòng nhập nội dung báo cáo." });
+      return;
+    }
+    const token = accessToken ?? (typeof window !== "undefined" ? window.sessionStorage.getItem("access_token") : null);
+    if (!token) {
+      setReportMsg({ type: "error", text: "Vui lòng đăng nhập để báo cáo." });
+      return;
+    }
+    setReportSubmitting(true);
+    setReportMsg(null);
+    const reasonText = reportReason === "other"
+      ? reportCustom.trim()
+      : reportReason === "inappropriate"
+        ? "Tin đăng không phù hợp"
+        : "Hình thức lừa đảo";
+    try {
+      const res = await fetch("/api/listings/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ listing_id: listing.listing_id, reason: reasonText }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409 || data?.already_reported) {
+        setAlreadyReported(true);
+        setReportMsg({ type: "error", text: "Bạn đã báo cáo bài viết này rồi." });
+        return;
+      }
+      if (!res.ok) throw new Error(data?.message || "Gửi báo cáo thất bại.");
+      setAlreadyReported(true);
+      setReportMsg({ type: "success", text: "Báo cáo đã được gửi. Cảm ơn bạn!" });
+      setTimeout(() => { setReportOpen(false); setReportMsg(null); }, 2000);
+    } catch (err) {
+      setReportMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   return (
     <section className={styles.page}>
       <div className={styles.breadcrumbs}>
@@ -400,6 +454,18 @@ export default function ListingDetailPage() {
                 })}
               >
                 Chat với người bán
+              </button>
+              <button
+                type="button"
+                className={styles.reportListingBtn}
+                onClick={() => {
+                  if (alreadyReported) return;
+                  setReportOpen(true); setReportMsg(null); setReportReason("inappropriate"); setReportCustom("");
+                }}
+                disabled={alreadyReported}
+                title={alreadyReported ? "Bạn đã báo cáo bài viết này" : "Báo cáo tin đăng"}
+              >
+                {alreadyReported ? "✓ Đã báo cáo" : "Báo cáo"}
               </button>
             </div>
           )}
@@ -534,6 +600,67 @@ export default function ListingDetailPage() {
               </button>
               <button type="button" className={styles.buyButton} onClick={() => void submitPurchase()} disabled={purchaseSubmitting}>
                 {purchaseSubmitting ? "Đang xử lý..." : "Xác nhận & trả cọc"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report listing modal */}
+      {reportOpen && (
+        <div className={styles.purchaseModalOverlay} onClick={() => !reportSubmitting && setReportOpen(false)}>
+          <div className={styles.purchaseModal} onClick={e => e.stopPropagation()}>
+            <h3>Báo cáo tin đăng</h3>
+            <p style={{ color: '#6b7280', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              Chọn lý do báo cáo tin đăng <strong>"{listing?.title}"</strong>
+            </p>
+
+            <div className={styles.depositOptions}>
+              {[
+                { value: "inappropriate", label: "Tin đăng không phù hợp" },
+                { value: "scam", label: "Hình thức lừa đảo" },
+                { value: "other", label: "Khác" },
+              ].map(opt => (
+                <label key={opt.value} className={styles.depositOption}>
+                  <input
+                    type="radio"
+                    name="reportReason"
+                    checked={reportReason === opt.value}
+                    onChange={() => setReportReason(opt.value)}
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {reportReason === "other" && (
+              <textarea
+                style={{ width: '100%', marginTop: '0.75rem', padding: '0.65rem', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '0.9rem', resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                placeholder="Nhập nội dung báo cáo..."
+                rows={3}
+                value={reportCustom}
+                onChange={e => setReportCustom(e.target.value)}
+              />
+            )}
+
+            {reportMsg && (
+              <div style={{ marginTop: '0.75rem', padding: '0.65rem', borderRadius: '8px', background: reportMsg.type === 'success' ? '#d1fae5' : '#fee2e2', color: reportMsg.type === 'success' ? '#065f46' : '#991b1b', fontSize: '0.88rem' }}>
+                {reportMsg.text}
+              </div>
+            )}
+
+            <div className={styles.purchaseModalActions}>
+              <button type="button" className={styles.chatButton} onClick={() => setReportOpen(false)} disabled={reportSubmitting}>
+                Hủy
+              </button>
+              <button
+                type="button"
+                className={styles.buyButton}
+                style={{ background: '#ef4444' }}
+                onClick={() => void submitReport()}
+                disabled={reportSubmitting}
+              >
+                {reportSubmitting ? "Đang gửi..." : "Gửi báo cáo"}
               </button>
             </div>
           </div>

@@ -262,7 +262,14 @@ export function ChatWidget() {
         }),
       });
       const result = await response.json();
-      if (!response.ok || !result?.success) throw new Error(result?.message || "Báo cáo thất bại.");
+      if (!response.ok || !result?.success) {
+        if (result?.already_reported) {
+          setReportMsg("⚠️ Bạn đã báo cáo cuộc trò chuyện này rồi.");
+          setTimeout(() => setReportTarget(null), 2000);
+          return;
+        }
+        throw new Error(result?.message || "Báo cáo thất bại.");
+      }
       setReportMsg("✅ Báo cáo đã được gửi. Cảm ơn bạn!");
       setTimeout(() => setReportTarget(null), 2000);
     } catch (err) {

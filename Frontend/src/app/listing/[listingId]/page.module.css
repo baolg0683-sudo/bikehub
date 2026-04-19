@@ -280,6 +280,31 @@
   transform: translateY(-1px);
 }
 
+.reportListingBtn {
+  border: 1px solid #e5e7eb;
+  padding: 0.95rem 1.2rem;
+  border-radius: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: white;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.reportListingBtn:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.reportListingBtn:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
 .sellerCard {
   padding: 1.5rem;
   border-radius: 1.25rem;

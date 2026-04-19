@@ -1008,3 +1008,82 @@ def get_inspector_history():
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         db.close()
+
+
+@listing_bp.route('/listings/report', methods=['POST'])
+@require_auth
+def report_listing():
+    """User reports a listing — max 1 report per user per listing"""
+    from infrastructure.models.reports.user_report_model import UserReport
+    from sqlalchemy.exc import IntegrityError
+
+    user = g.get('user')
+    if not user:
+        return jsonify({'success': False, 'message': 'Authentication required'}), 401
+
+    data = request.get_json() or {}
+    listing_id = data.get('listing_id')
+    reason = (data.get('reason') or '').strip()
+
+    if not listing_id:
+        return jsonify({'success': False, 'message': 'listing_id is required'}), 400
+    if not reason:
+        return jsonify({'success': False, 'message': 'reason is required'}), 400
+
+    reporter_id = int(user.get('user_id'))
+    db_session = SessionLocal()
+    try:
+        listing = db_session.query(Listing).filter(Listing.listing_id == int(listing_id)).first()
+        if not listing:
+            return jsonify({'success': False, 'message': 'Listing not found'}), 404
+
+        # Check đã báo cáo chưa
+        existing = db_session.query(UserReport).filter(
+            UserReport.reporter_id == reporter_id,
+            UserReport.target_type == 'listing',
+            UserReport.target_id == str(listing_id),
+        ).first()
+        if existing:
+            return jsonify({'success': False, 'already_reported': True, 'message': 'Bạn đã báo cáo bài viết này rồi.'}), 409
+
+        report = UserReport(
+            reporter_id=reporter_id,
+            target_type='listing',
+            target_id=str(listing_id),
+            reason=reason,
+        )
+        db_session.add(report)
+        db_session.commit()
+        return jsonify({'success': True, 'message': 'Báo cáo đã được gửi đến quản trị viên. Cảm ơn bạn!'}), 200
+    except IntegrityError:
+        db_session.rollback()
+        return jsonify({'success': False, 'already_reported': True, 'message': 'Bạn đã báo cáo bài viết này rồi.'}), 409
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        db_session.close()
+
+
+@listing_bp.route('/listings/report/check', methods=['GET'])
+@require_auth
+def check_listing_report():
+    """Check if current user already reported a listing"""
+    from infrastructure.models.reports.user_report_model import UserReport
+
+    user = g.get('user')
+    listing_id = request.args.get('listing_id')
+    if not listing_id:
+        return jsonify({'reported': False}), 200
+
+    reporter_id = int(user.get('user_id'))
+    db_session = SessionLocal()
+    try:
+        existing = db_session.query(UserReport).filter(
+            UserReport.reporter_id == reporter_id,
+            UserReport.target_type == 'listing',
+            UserReport.target_id == str(listing_id),
+        ).first()
+        return jsonify({'reported': existing is not None}), 200
+    finally:
+        db_session.close()

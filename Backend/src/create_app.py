@@ -85,6 +85,11 @@ def create_app():
         except Exception:
             InspectionReport = None
 
+        try:
+            from infrastructure.models.reports.user_report_model import UserReport  # noqa: F401
+        except Exception:
+            pass
+
         # Ensure required schemas exist for PostgreSQL databases.
         try:
             dialect_name = getattr(db.engine, 'dialect', None) and db.engine.dialect.name

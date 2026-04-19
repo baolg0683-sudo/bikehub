@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import HeaderWrapper from "../components/Layout/HeaderWrapper";
 import Footer from "../components/Layout/Footer";
-import { DebugAuth } from "../components/Layout/DebugAuth";
 import { AuthProvider } from "../context/AuthContext";
 import { ChatProvider } from "../context/ChatContext";
 import { ChatWidget } from "../components/Common/ChatWidget";
@@ -31,7 +30,6 @@ export default function RootLayout({
             </main>
             <Footer />
             <ChatWidget />
-            <DebugAuth />
           </ChatProvider>
         </AuthProvider>
       </body>

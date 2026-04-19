@@ -11,7 +11,7 @@ from sqlalchemy import or_
 
 from api.middleware.auth import require_auth, require_admin
 from api.utils.jwt_utils import TokenManager, get_current_user
-from infrastructure.databases import db
+from infrastructure.databases import db, SessionLocal
 from infrastructure.models.auth.user_model import UserModel
 from infrastructure.models.interactions.review_model import ReviewModel
 from infrastructure.models.orders.models import Order
@@ -359,6 +359,7 @@ def create_user():
             }), 400
 
         avatar_url = str(data.get('avatar_url', '')).strip() or None
+        service_area = str(data.get('service_area', '')).strip() or None
         if not avatar_url:
             return jsonify({
                 "success": False,
@@ -424,6 +425,10 @@ def create_user():
         new_user.date_of_birth = date_of_birth  # type: ignore[assignment]
         new_user.avatar_url = avatar_url  # type: ignore[assignment]
         new_user.role = role  # type: ignore[assignment]
+        
+        # Set service area for inspectors
+        if role == 'INSPECTOR' and service_area:
+            new_user.service_area = service_area  # type: ignore[assignment]
 
         db.session.add(new_user)
         db.session.commit()
@@ -435,7 +440,8 @@ def create_user():
                 "user_id": new_user.user_id,
                 "email": new_user.email,
                 "phone": new_user.phone,
-                "role": new_user.role
+                "role": new_user.role,
+                "service_area": new_user.service_area if role == 'INSPECTOR' else None
             }
         }), 201
 
@@ -446,6 +452,38 @@ def create_user():
             "error": "Server error",
             "message": str(e)
         }), 500
+
+
+@auth_endpoints_bp.route('', methods=['GET'])
+@require_admin
+def list_users():
+    """
+    Admin-only endpoint to list all users and inspectors.
+    """
+    db_session = SessionLocal()
+    try:
+        users = db_session.query(UserModel).order_by(UserModel.role.desc(), UserModel.full_name.asc()).all()
+        return jsonify([
+            {
+                'user_id': user.user_id,
+                'full_name': user.full_name,
+                'email': user.email,
+                'phone': user.phone,
+                'avatar_url': user.avatar_url,
+                'role': user.role,
+                'service_area': user.service_area,
+                'status': user.status,
+            }
+            for user in users
+        ]), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Server error',
+            'message': str(e)
+        }), 500
+    finally:
+        db_session.close()
 
 
 @auth_endpoints_bp.route('/login', methods=['POST'])

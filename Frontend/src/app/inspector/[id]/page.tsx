@@ -253,8 +253,9 @@ export default function InspectorDetail() {
       setListing(data);
       setInspectionStarted(true);
       setSaveMessage(null);
-    } catch (err: any) {
-      alert(err.message || 'Không thể nhận kiểm định.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Không thể nhận kiểm định.';
+      alert(errorMessage);
     } finally {
       setAssignLoading(false);
     }
@@ -279,8 +280,9 @@ export default function InspectorDetail() {
         }
         setListing(data);
         router.push('/inspector');
-      } catch (err: any) {
-        alert(err.message || 'Không thể hủy nhận kiểm định.');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Không thể hủy nhận kiểm định.';
+        alert(errorMessage);
       } finally {
         setUnassignLoading(false);
       }
@@ -325,8 +327,9 @@ export default function InspectorDetail() {
         images: listing.images,
       });
       setSaveMessage('Lưu thông tin thành công.');
-    } catch (err: any) {
-      setSaveMessage(err.message || 'Lỗi khi lưu thông tin.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Lỗi khi lưu thông tin.';
+      setSaveMessage(errorMessage);
     } finally {
       setSavingChanges(false);
     }
@@ -344,7 +347,12 @@ export default function InspectorDetail() {
   const handleApprove = async () => {
     setIsSubmitting(true);
     try {
-      const payload: any = { action: 'PASS' };
+      const payload: { 
+        action: string; 
+        checklist?: Record<string, boolean>;
+        technical_details?: Record<string, unknown>;
+        review_only?: boolean;
+      } = { action: 'PASS' };
       if (!isPendingApprovalListing) {
         if (!allChecked) {
           alert('Cần hoàn tất checklist trước khi duyệt.');

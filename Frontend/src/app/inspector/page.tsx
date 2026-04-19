@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -13,7 +13,7 @@ interface Listing {
   status: string;
   is_verified: boolean;
   images: string[];
-  bike_details: any;
+  bike_details: Record<string, unknown>;
   seller_id: number;
   seller?: {
     seller_id: number;
@@ -75,8 +75,9 @@ export default function InspectorDashboard() {
 
         const data = await response.json();
         setPendingListings(data);
-      } catch (err: any) {
-        setError(err.message || 'Có lỗi xảy ra');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+        setError(errorMessage);
       }
     };
 
@@ -95,8 +96,9 @@ export default function InspectorDashboard() {
 
         const data = await response.json();
         setPendingApprovalListings(data);
-      } catch (err: any) {
-        setError(err.message || 'Có lỗi xảy ra');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+        setError(errorMessage);
       }
     };
 
@@ -122,12 +124,13 @@ export default function InspectorDashboard() {
         const approvalData = approvalResponse.ok ? await approvalResponse.json() : [];
 
         // Mark the type for filtering
-        const inspectionListings = inspectionData.map((item: any) => ({ ...item, historyType: 'inspection' }));
-        const approvalListings = approvalData.map((item: any) => ({ ...item, historyType: 'approval' }));
+        const inspectionListings = inspectionData.map((item: Record<string, unknown>) => ({ ...item, historyType: 'inspection' }));
+        const approvalListings = approvalData.map((item: Record<string, unknown>) => ({ ...item, historyType: 'approval' }));
 
         setHistoryListings([...inspectionListings, ...approvalListings]);
-      } catch (err: any) {
-        setError(err.message || 'Có lỗi xảy ra khi tải lịch sử');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải lịch sử';
+        setError(errorMessage);
       }
     };
 
@@ -137,8 +140,8 @@ export default function InspectorDashboard() {
   const filteredPendingListings = useMemo(() => {
     if (areaFilter === 'all') return pendingListings;
     return pendingListings.filter((listing) => {
-      const notes = (listing as any).inspection_notes || '';
-      return notes.toLowerCase().includes(areaFilter.toLowerCase());
+      const notes = (listing as unknown as Record<string, unknown>).inspection_notes || '';
+      return (notes as string).toLowerCase().includes(areaFilter.toLowerCase());
     });
   }, [areaFilter, pendingListings]);
 
@@ -201,8 +204,9 @@ export default function InspectorDashboard() {
 
       setRefreshKey((prev) => prev + 1);
       router.push(`/inspector/${listingId}`);
-    } catch (err: any) {
-      setError(err.message || 'Có lỗi xảy ra khi nhận kiểm định');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra khi nhận kiểm định';
+      setError(errorMessage);
     } finally {
       setActionLoading(null);
     }
@@ -226,7 +230,12 @@ export default function InspectorDashboard() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Khu Vực Kiểm Định</h1>
-          </div>
+          {user?.service_area && (
+            <p style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.25rem' }}>
+              Khu vực hoạt động: <strong>{user.service_area}</strong>
+            </p>
+          )}
+        </div>
 
         <div className={styles.headerActions}>
           <Link href="/inspector/disputes" className={styles.toggleViewBtn}>
@@ -288,7 +297,6 @@ export default function InspectorDashboard() {
               <option value="tp hcm">TP. HCM</option>
               <option value="hà nội">Hà Nội</option>
               <option value="đà nẵng">Đà Nẵng</option>
-              <option value="khác">Khác</option>
             </select>
           </>
         ) : null}
@@ -351,8 +359,8 @@ export default function InspectorDashboard() {
                 <div className={styles.cardPrice}>{formatPrice(listing.price)}</div>
 
                 <div className={styles.cardDetails}>
-                  <p>Hãng: {listing.bike_details?.brand || 'N/A'}</p>
-                  <p>Loại xe: {listing.bike_details?.type || 'N/A'}</p>
+                  <p>Hãng: {String(listing.bike_details?.brand || 'N/A')}</p>
+                  <p>Loại xe: {String(listing.bike_details?.type || 'N/A')}</p>
                   <p>
                     Điều kiện:{' '}
                     {typeof listing.bike_details?.condition_percent === 'number'

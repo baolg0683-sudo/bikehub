@@ -138,22 +138,6 @@ const Header: React.FC = () => {
           </Link>
         </div>
 
-        {/* Menu điều hướng */}
-        <nav className={styles.headerNav}>
-          <a href="#" className={styles.navLink}>
-            Sản phẩm
-            <span className={styles.navUnderline}></span>
-          </a>
-          <a href="#" className={styles.navLink}>
-            Dịch vụ
-            <span className={styles.navUnderline}></span>
-          </a>
-          <a href="#" className={styles.navLink}>
-            Liên hệ
-            <span className={styles.navUnderline}></span>
-          </a>
-        </nav>
-
         {/* Nút hành động */}
         <div className={styles.headerActions}>
           {!loggedIn && (

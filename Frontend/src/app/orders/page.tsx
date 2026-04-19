@@ -173,19 +173,13 @@ export default function OrdersPage() {
     }
   };
 
-  const submitDispute = async () => {
-    if (disputeOpen === null) return;
-    setActionId(disputeOpen);
+  const submitReject = async () => {
+    if (rejectOpen === null) return;
+    setActionId(rejectOpen);
     try {
-      await postAction(`/api/orders/${disputeOpen}/dispute`, {
-        description: disputeText,
-        area: disputeArea.trim() || null,
-        address: disputeAddress.trim() || null,
-      });
-      setDisputeOpen(null);
-      setDisputeText("");
-      setDisputeArea("");
-      setDisputeAddress("");
+      await postAction(`/api/orders/${rejectOpen}/reject`, { reason: rejectReason });
+      setRejectOpen(null);
+      setRejectReason("");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -402,8 +396,8 @@ export default function OrdersPage() {
                         </>
                       ) : (
                         <span style={{ fontSize: "0.85rem", color: "#64748b", alignSelf: "center" }}>
-                          Chờ người bán xác nhận đã hẹn lịch giao dịch để dùng &quot;Đã nhận xe&quot; và báo cáo tranh
-                          chấp.
+                          Chờ người bán xác nhận đã hẹn lịch giao dịch để dùng &quot;Đã nhận xe&quot;, &quot;Từ chối nhận
+                          xe&quot; và báo cáo tranh chấp.
                         </span>
                       )}
                       <button
@@ -438,6 +432,8 @@ export default function OrdersPage() {
                       disabled={actionId === o.order_id}
                       onClick={() => {
                         setDisputeText("");
+                        setDisputeArea("");
+                        setDisputeAddress("");
                         setDisputeOpen(o.order_id);
                       }}
                     >
@@ -480,20 +476,8 @@ export default function OrdersPage() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3>Báo cáo tranh chấp</h3>
             <p style={{ color: "#475569", fontSize: "0.9rem" }}>
-              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự.
+              Chỉ áp dụng khi xe đã qua kiểm định sàn. Mô tả ít nhất 10 ký tự. 
             </p>
-            <input
-              value={disputeArea}
-              onChange={(e) => setDisputeArea(e.target.value)}
-              placeholder="Khu vực hiện tại (ví dụ: HCM, Hà Nội...)"
-              style={{ width: "100%" }}
-            />
-            <input
-              value={disputeAddress}
-              onChange={(e) => setDisputeAddress(e.target.value)}
-              placeholder="Địa chỉ cụ thể để kiểm định viên liên hệ (tùy chọn)"
-              style={{ width: "100%" }}
-            />
             <textarea value={disputeText} onChange={(e) => setDisputeText(e.target.value)} placeholder="Mô tả tranh chấp..." />
             <div className={styles.modalActions}>
               <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={() => setDisputeOpen(null)} disabled={!!actionId}>

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../context/AuthContext';
-import { resolveAccessToken } from '../../../utils/accessToken';
+import { useAuth } from '@/context/AuthContext';
+import { resolveAccessToken } from '@/utils/accessToken';
 import { AdminSidebar } from '../AdminSidebar';
 import adminStyles from '../page.module.css';
 import styles from '../bank-verifications/bank-verifications.module.css';
@@ -55,6 +55,8 @@ export default function AdminDisputesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [areaFilter, setAreaFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [assigningId, setAssigningId] = useState<number | null>(null);
   const [applyingPenaltyId, setApplyingPenaltyId] = useState<number | null>(null);
   const [assignInspectorId, setAssignInspectorId] = useState<Record<number, string>>({});
@@ -138,6 +140,22 @@ export default function AdminDisputesPage() {
       `${i.service_area || ''} ${i.name || ''} ${i.certificate_id || ''}`.toLowerCase().includes(needle)
     );
   }, [inspectors, areaFilter]);
+
+  // Filter disputes by status + search (buyer/seller name/email)
+  const filteredDisputes = useMemo(() => {
+    return disputes.filter(d => {
+      if (statusFilter && d.status !== statusFilter) return false;
+      if (searchTerm.trim()) {
+        const t = searchTerm.toLowerCase();
+        const buyerMatch = d.buyer?.name?.toLowerCase().includes(t);
+        const sellerMatch = d.seller?.name?.toLowerCase().includes(t);
+        const openedMatch = d.opened_by?.name?.toLowerCase().includes(t);
+        const titleMatch = d.listing_title?.toLowerCase().includes(t);
+        if (!buyerMatch && !sellerMatch && !openedMatch && !titleMatch) return false;
+      }
+      return true;
+    });
+  }, [disputes, statusFilter, searchTerm]);
 
   const handleAssign = async (disputeId: number) => {
     if (!token) return;
@@ -281,23 +299,43 @@ export default function AdminDisputesPage() {
         </header>
 
         <section className={styles.panel}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label className={styles.detailDt} htmlFor="areaSearch">
-              Lọc khu vực inspector
-            </label>
-            <input
-              id="areaSearch"
-              value={areaFilter}
-              onChange={(e) => setAreaFilter(e.target.value)}
-              placeholder="Ví dụ: Hà Nội, HCM, miền Trung..."
-              style={{
-                width: '100%',
-                marginTop: '0.45rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                padding: '0.55rem 0.75rem',
-              }}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.75rem', marginBottom: '1rem', alignItems: 'end' }}>
+            {/* Search by buyer/seller */}
+            <div>
+              <label className={styles.detailDt} style={{ display: 'block', marginBottom: '0.35rem' }}>
+                Tìm kiếm người dùng trong tranh chấp
+              </label>
+              <input
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Tên người mua, người bán, người mở..."
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.55rem 0.75rem' }}
+              />
+            </div>
+
+            {/* Status filter */}
+            <div>
+              <label className={styles.detailDt} style={{ display: 'block', marginBottom: '0.35rem' }}>
+                Lọc theo trạng thái
+              </label>
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.55rem 0.75rem', background: 'white' }}
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="OPEN">OPEN - Đang mở</option>
+                <option value="ASSIGNED">ASSIGNED - Đã phân công</option>
+                <option value="RESOLVED">RESOLVED - Đã giải quyết</option>
+                <option value="CANCELLED">CANCELLED - Đã hủy</option>
+              </select>
+            </div>
+
+            
+          </div>
+
+          <div style={{ marginBottom: '0.75rem', color: '#6b7280', fontSize: '0.875rem' }}>
+            Hiển thị <strong>{filteredDisputes.length}</strong> / {disputes.length} tranh chấp
           </div>
 
           {message ? (
@@ -306,19 +344,29 @@ export default function AdminDisputesPage() {
             </div>
           ) : null}
 
-          {disputes.length === 0 ? (
+          {filteredDisputes.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>⚖️</div>
-              <h2 className={styles.emptyTitle}>Chưa có tranh chấp</h2>
-              <p className={styles.emptyText}>Khi buyer/seller tạo tranh chấp, dữ liệu sẽ hiển thị ở đây.</p>
+              <h2 className={styles.emptyTitle}>
+                {disputes.length === 0 ? 'Chưa có tranh chấp' : 'Không tìm thấy kết quả'}
+              </h2>
+              <p className={styles.emptyText}>
+                {disputes.length === 0
+                  ? 'Khi buyer/seller tạo tranh chấp, dữ liệu sẽ hiển thị ở đây.'
+                  : 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.'}
+              </p>
             </div>
           ) : (
             <div className={styles.requestGrid}>
-              {disputes.map((d) => (
+              {filteredDisputes.map((d) => (
                 <article key={d.dispute_id} className={styles.requestCard}>
                   <div className={styles.cardHeader}>
                     <span className={styles.cardId}>Dispute #{d.dispute_id}</span>
-                    <span className={styles.cardDate}>{d.status}</span>
+                    <span className={styles.cardDate} style={{
+                      background: d.status === 'OPEN' ? '#fef3c7' : d.status === 'ASSIGNED' ? '#dbeafe' : d.status === 'RESOLVED' ? '#d1fae5' : '#f3f4f6',
+                      color: d.status === 'OPEN' ? '#92400e' : d.status === 'ASSIGNED' ? '#1e40af' : d.status === 'RESOLVED' ? '#065f46' : '#374151',
+                      padding: '0.2rem 0.6rem', borderRadius: '999px', fontWeight: 600, fontSize: '0.78rem'
+                    }}>{d.status}</span>
                   </div>
                   <div className={styles.userBlock}>
                     <div className={styles.avatar}>!</div>

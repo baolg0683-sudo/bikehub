@@ -55,7 +55,11 @@ const InspectorHeader: React.FC = () => {
         <div className={styles.userSection} ref={dropdownRef}>
           <button type="button" className={styles.avatarButton} onClick={() => setShowDropdown((prev) => !prev)}>
             <div className={styles.userBadge}>
-              <span>{user?.full_name?.charAt(0).toUpperCase() || 'I'}</span>
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt={user.full_name} className={styles.userAvatarImg} />
+              ) : (
+                <span>{user?.full_name?.charAt(0).toUpperCase() || 'I'}</span>
+              )}
             </div>
             <div className={styles.userInfo}>
               <p>{user?.full_name || 'Kiểm định viên'}</p>

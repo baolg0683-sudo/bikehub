@@ -591,6 +591,144 @@
   border-color: #dc2626;
 }
 
+/* Lock / Unlock buttons */
+.lockBtn {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #f59e0b;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lockBtn:hover:not(:disabled) {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+.unlockBtn {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  background: #10b981;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.unlockBtn:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+}
+
+.lockBtn:disabled, .unlockBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Locked user tile */
+.userTileLocked {
+  opacity: 0.7;
+  border-color: #fca5a5 !important;
+  background: #fff5f5 !important;
+}
+
+.badgeLocked {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-left: 0.4rem;
+}
+
+/* Lock modal */
+.lockModalBox {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.lockModalTitle {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.lockOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.lockOption {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #374151;
+}
+
+.lockDaysRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.lockDaysInput {
+  width: 80px;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.lockModalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.lockCancelBtn {
+  padding: 0.65rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lockCancelBtn:hover:not(:disabled) { background: #f9fafb; }
+
+.lockConfirmBtn {
+  padding: 0.65rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background: #ef4444;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lockConfirmBtn:hover:not(:disabled) { background: #dc2626; }
+.lockConfirmBtn:disabled, .lockCancelBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* Settings page styles */
 .settingsCard {
   background: white;

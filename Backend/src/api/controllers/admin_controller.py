@@ -266,6 +266,8 @@ def list_users():
                 'role': u.role,
                 'service_area': u.service_area,
                 'status': u.status,
+                'banned_permanent': bool(u.banned_permanent),
+                'banned_until': u.banned_until.isoformat() if u.banned_until else None,
                 'rating': float(u.reputation_score or 5.0),
                 'bikes_sold': bikes_sold,
                 'bikes_bought': bikes_bought,
@@ -273,6 +275,58 @@ def list_users():
         return jsonify(result), 200
     except Exception as e:
         import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/users/<int:user_id>/lock', methods=['POST'])
+@require_role('ADMIN')
+def lock_user(user_id: int):
+    """Lock a user: permanent or for N days"""
+    s = db.session
+    data = request.get_json() or {}
+    permanent = bool(data.get('permanent', False))
+    days = int(data.get('days', 0))
+
+    if not permanent and days <= 0:
+        return jsonify({'success': False, 'message': 'Cần nhập số ngày hoặc chọn vĩnh viễn'}), 400
+    try:
+        u = s.query(UserModel).filter(UserModel.user_id == user_id).first()
+        if not u:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        u.status = 'BANNED'
+        u.banned_permanent = permanent
+        u.banned_until = None if permanent else (datetime.utcnow() + timedelta(days=days))
+        u.locked_at = datetime.utcnow()
+        s.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Đã khóa tài khoản vĩnh viễn' if permanent else f'Đã khóa tài khoản {days} ngày',
+            'status': u.status,
+            'banned_permanent': u.banned_permanent,
+            'banned_until': u.banned_until.isoformat() if u.banned_until else None,
+        }), 200
+    except Exception as e:
+        s.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/users/<int:user_id>/unlock', methods=['POST'])
+@require_role('ADMIN')
+def unlock_user(user_id: int):
+    """Unlock a user"""
+    s = db.session
+    try:
+        u = s.query(UserModel).filter(UserModel.user_id == user_id).first()
+        if not u:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        u.status = 'ACTIVE'
+        u.banned_permanent = False
+        u.banned_until = None
+        u.locked_at = None
+        s.commit()
+        return jsonify({'success': True, 'message': 'Đã mở khóa tài khoản', 'status': 'ACTIVE'}), 200
+    except Exception as e:
+        s.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

@@ -57,6 +57,21 @@
   background: #eff6ff;
 }
 
+.conversationMetaUnread {
+  font-weight: 600;
+  color: #1d4ed8 !important;
+}
+
+.unreadDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
 .messageUnread {
   border: 1px solid #60a5fa;
 }
@@ -573,6 +588,180 @@
   background: #f8fafc;
 }
 
+.messageAttachmentImageWrap {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.messageAttachmentImageWrap:hover .zoomBtn {
+  opacity: 1;
+}
+
+.zoomBtn {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* ── Attachment preview area (above textarea) ── */
+.attachPreviewArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.attachPreviewItem {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.attachPreviewImgWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.attachPreviewImgWrap:hover .attachPreviewZoom {
+  opacity: 1;
+}
+
+.attachPreviewZoom {
+  position: absolute;
+  bottom: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  font-size: 0.65rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  padding: 0;
+}
+
+.attachPreviewMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.attachPreviewFile {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.attachPreviewFile span {
+  font-size: 0.65rem;
+  color: #6b7280;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.attachPreviewRemove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  border: none;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+
+.attachPreviewRemove:hover {
+  background: rgba(239,68,68,0.9);
+}
+
+
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+
+.lightboxImage {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 12px;
+  object-fit: contain;
+  cursor: default;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.lightboxClose:hover {
+  background: rgba(255,255,255,0.28);
+}
+
 .messageAttachmentVideo {
   width: 100%;
   min-height: 100px;
@@ -607,3 +796,135 @@
 .open {
   pointer-events: auto;
 }
+
+/* No conversation placeholder */
+.noConvPlaceholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #9ca3af;
+  padding: 2rem;
+  text-align: center;
+}
+
+.noConvIcon {
+  font-size: 2.5rem;
+  opacity: 0.4;
+}
+
+.noConvPlaceholder p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Report modal */
+.reportModal {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.reportHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.reportHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.reportSub {
+  margin: 0 0 1.25rem 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.reportOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.reportOption {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.reportOption input[type="radio"] {
+  accent-color: #3b82f6;
+  width: 16px;
+  height: 16px;
+}
+
+.reportTextarea {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.65rem;
+  font-size: 0.88rem;
+  resize: none;
+  margin-bottom: 0.75rem;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.reportTextarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.reportMsg {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.88rem;
+  color: #374151;
+}
+
+.reportActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.reportCancelBtn {
+  padding: 0.6rem 1.1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.reportCancelBtn:hover:not(:disabled) { background: #f9fafb; }
+
+.reportSubmitBtn {
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background: #ef4444;
+  color: white;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.reportSubmitBtn:hover:not(:disabled) { background: #dc2626; }
+.reportSubmitBtn:disabled, .reportCancelBtn:disabled { opacity: 0.6; cursor: not-allowed; }
